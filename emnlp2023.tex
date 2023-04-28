@@ -11,6 +11,12 @@
 \usepackage{times}
 \usepackage{latexsym}
 
+% New packages
+\usepackage{lipsum}
+\usepackage{booktabs}
+\usepackage{mystyle}
+\usepackage{multirow}
+
 % For proper rendering and hyphenation of words containing Latin characters (including in bib files)
 \usepackage[T1]{fontenc}
 % For Vietnamese characters
@@ -31,13 +37,20 @@
 \usepackage{inconsolata}
 
 
+\newcommand{\justin}[1]{{{\textcolor{purple}{(Justin: #1)}}}}
+\newcommand{\derek}[1]{{{\textcolor{blue}{(Derek: #1)}}}}
+\newcommand{\wenting}[1]{{{\textcolor{orange}{(Wenting: #1)}}}}
+\newcommand{\daniel}[1]{{{\textcolor{red}{(Daniel: #1)}}}}
+\newcommand{\srush}[1]{{{\textcolor{green}{(Sasha: #1)}}}}
+
+
 % If the title and author information does not fit in the area allocated, uncomment the following
 %
 %\setlength\titlebox{<dim>}
 %
 % and set <dim> to something 5cm or larger.
 
-\title{Instructions for EMNLP 2023 Proceedings}
+\title{Modeling Perspective-Dependent Ambiguity \\ in Grounded Collaborative Dialogue}
 
 % Author information can be set in various styles:
 % For several authors from the same institution:
@@ -55,217 +68,868 @@
 %         Author 2 \\ Address line \\ ... \\ Address line \And
 %         Author 3 \\ Address line \\ ... \\ Address line}
 
-\author{First Author \\
-  Affiliation / Address line 1 \\
-  Affiliation / Address line 2 \\
-  Affiliation / Address line 3 \\
-  \texttt{email@domain} \\\And
-  Second Author \\
-  Affiliation / Address line 1 \\
-  Affiliation / Address line 2 \\
-  Affiliation / Address line 3 \\
-  \texttt{email@domain} \\}
+\author{
+Justin T. Chiu  \\
+Cornell Tech \\
+\texttt{jtc257@cornell.edu}
+\And
+Wenting Zhao \\
+Cornell University \\
+\texttt{wz346@cornell.edu}
+\And
+Derek Chen \\
+Startup \\
+\texttt{derek@startup.com}
+\And
+Alexander M. Rush \\
+Cornell Tech \\
+\texttt{arush@cornell.edu}
+\And
+Daniel Fried \\
+Carnegie Mellon University \\
+\texttt{dfried@cs.cmu.edu} 
+}
 
 \begin{document}
 \maketitle
 \begin{abstract}
-This document is a supplement to the general instructions for *ACL authors. It contains instructions for using the \LaTeX{} style file for EMNLP 2023. 
-The document itself conforms to its own specifications, and is, therefore, an example of what your manuscript should look like.
-These instructions should be used both for papers submitted for review and for final versions of accepted papers.
+Errors in reference generation and resolution can occur if
+a dialogue agent reasons incorrectly about their partner's perspective.
+We present, in a collaborative and visually grounded setting,
+a dialogue planner that infers its partner's perspective
+to produce referring expressions that the partner resolves correctly.
+The dialogue planner models the partner perspective as a latent variable,
+embedded in a partner model that is used for both model-based planning
+and incorporating evidence from partner responses. 
+We validate our approach on \textsc{OneCommon}, 
+a challenging dialogue game where players have large differences in their perspectives.
+In symbolic selfplay, where agents partner with a copy of themselves
+using symbolic communication,
+the dialogue planner has promising performance,
+winning 85.2\% of games.
+%In automatic evaluation of plan proposals,
+%reasoning about the partner's perspective as a latent variable
+%results in a 12\% reduction in the total number of incorrectly
+%resolved plans compared to a state-of-the-art baseline \citep{fried}.
 \end{abstract}
 
+%\justin{Perspective-dependent ambiguity may be too general. Covers different field of view AND other differences in perspective, such as different feature processing such as colorblindness. Either specify a field-of-view specific ambiguity, or clarify which perspective-dependent ambiguity subtype we focus on. For feature swap experiment: swap black and white wp .5}
+
 \section{Introduction}
+%\textbf{Collaboration is impeded by ambiguity}
+Ambiguity is a key impediment to collaborative dialogue that makes
+linguistics actions, such as reference resolution and generation,
+ difficult to execute.
+One cause of ambiguity in a grounded setting is differences in perspectives \citep{brownschmidt2011perspective}.
+Agents that incorrectly assume their partner shares their perspective  may make errors in reference generation and resolution.
+We refer to ambiguity induced by different perspectives as \textit{perspective-dependent ambiguity}.
 
-These instructions are for authors submitting papers to EMNLP 2023 using \LaTeX. They are not self-contained. All authors must follow the general instructions for *ACL proceedings,\footnote{\url{http://acl-org.github.io/ACLPUB/formatting.html}} as well as guidelines set forth in the EMNLP 2023 call for papers. This document contains additional instructions for the \LaTeX{} style files.
-The templates include the \LaTeX{} source of this document (\texttt{EMNLP2023.tex}),
-the \LaTeX{} style file used to format it (\texttt{EMNLP2023.sty}),
-an ACL bibliography style (\texttt{acl\_natbib.bst}),
-an example bibliography (\texttt{custom.bib}),
-and the bibliography for the ACL Anthology (\texttt{anthology.bib}).
+\begin{figure}[t]
+\setlength{\abovecaptionskip}{0pt}
 
-\section{Engines}
-
-To produce a PDF file, pdf\LaTeX{} is strongly recommended (over original \LaTeX{} plus dvips+ps2pdf or dvipdf). Xe\LaTeX{} also produces PDF files, and is especially suitable for text in non-Latin scripts.
-\begin{table}
 \centering
-\begin{tabular}{lc}
-\hline
-\textbf{Command} & \textbf{Output}\\
-\hline
-\verb|{\"a}| & {\"a} \\
-\verb|{\^e}| & {\^e} \\
-\verb|{\`i}| & {\`i} \\ 
-\verb|{\.I}| & {\.I} \\ 
-\verb|{\o}| & {\o} \\
-\verb|{\'u}| & {\'u}  \\ 
-\verb|{\aa}| & {\aa}  \\\hline
-\end{tabular}
-\begin{tabular}{lc}
-\hline
-\textbf{Command} & \textbf{Output}\\
-\hline
-\verb|{\c c}| & {\c c} \\ 
-\verb|{\u g}| & {\u g} \\ 
-\verb|{\l}| & {\l} \\ 
-\verb|{\~n}| & {\~n} \\ 
-\verb|{\H o}| & {\H o} \\ 
-\verb|{\v r}| & {\v r} \\ 
-\verb|{\ss}| & {\ss} \\
-\hline
-\end{tabular}
-\caption{Example commands for accented characters, to be used in, \emph{e.g.}, Bib\TeX{} entries.}
-\label{tab:accents}
-\end{table}
-\section{Preamble}
-\begin{table*}
-\centering
-\begin{tabular}{lll}
-\hline
-\textbf{Output} & \textbf{natbib command} & \textbf{Old ACL-style command}\\
-\hline
-\citep{ct1965} & \verb|\citep| & \verb|\cite| \\
-\citealp{ct1965} & \verb|\citealp| & no equivalent \\
-\citet{ct1965} & \verb|\citet| & \verb|\newcite| \\
-\citeyearpar{ct1965} & \verb|\citeyearpar| & \verb|\shortcite| \\
-\citeposs{ct1965} & \verb|\citeposs| & no equivalent \\
-\citep[FFT;][]{ct1965} &  \verb|\citep[FFT;][]| & no equivalent\\
-\hline
-\end{tabular}
-\caption{\label{citation-guide}
-Citation commands supported by the style file.
-The style is based on the natbib package and supports all natbib citation commands.
-It also supports commands defined in previous ACL style files for compatibility.
+
+\scalebox{1.1}{
+\begin{tikzpicture}
+
+%\filldraw[gray!40] (0,0) circle (.3em);
+%\filldraw[gray!100] (.25,0) circle (.38em);
+%\filldraw[gray!160] (.5,0) circle (.45em);
+
+\filldraw[gray!160] (-.2,.6) circle (.45em); % 766
+\filldraw[gray!40] (-.7,-.3) circle (.4em); % 51
+\filldraw[gray!40] (.4,.1) circle (.3em); % 52
+\filldraw[gray!100] (.8,-.1) circle (.3em); % 66
+
+% left
+\filldraw[gray!140] (-1.3,-1.2) circle (.3em); % 13
+\filldraw[gray!100] (-1.6,-1.8) circle (.3em); % 14
+\filldraw[gray!110] (-.2,-1.1) circle (.4em); % 74
+
+% right
+\filldraw[gray!100] (-1,1.5) circle (.3em); % 28
+\filldraw[gray!100] (-.5,1.6) circle (.38em); % 69
+\filldraw[gray!160] (.8,1.8) circle (.45em); % 26
+
+% left selects 76
+\draw[blue,thick] (-.2,.6) circle (.7em);
+% right selects 26
+\draw[red,thick] (.8,1.8) circle (.7em);
+
+\draw[blue,thick] (-.3,-.7) circle (5em);
+\draw[red,thick] (.2,1) circle (5em);
+\end{tikzpicture}
 }
-\end{table*}
-The first line of the file must be
-\begin{quote}
-\begin{verbatim}
-\documentclass[11pt]{article}
-\end{verbatim}
-\end{quote}
-To load the style file in the review version:
-\begin{quote}
-\begin{verbatim}
-\usepackage[review]{EMNLP2023}
-\end{verbatim}
-\end{quote}
-For the final version, omit the \verb|review| option:
-\begin{quote}
-\begin{verbatim}
-\usepackage{EMNLP2023}
-\end{verbatim}
-\end{quote}
-To use Times Roman, put the following in the preamble:
-\begin{quote}
-\begin{verbatim}
-\usepackage{times}
-\end{verbatim}
-\end{quote}
-(Alternatives like txfonts or newtx are also acceptable.)
-Please see the \LaTeX{} source of this document for comments on other packages that may be useful.
-Set the title and author using \verb|\title| and \verb|\author|. Within the author list, format multiple authors using \verb|\and| and \verb|\And| and \verb|\AND|; please see the \LaTeX{} source for examples.
-By default, the box containing the title and author names is set to the minimum of 5 cm. If you need more space, include the following in the preamble:
-\begin{quote}
-\begin{verbatim}
-\setlength\titlebox{<dim>}
-\end{verbatim}
-\end{quote}
-where \verb|<dim>| is replaced with a length. Do not set this length smaller than 5 cm.
 
-\section{Document Body}
+\vspace{1em}
 
-\subsection{Footnotes}
+\small
+\begin{tabular}[b]{@{}l@{}l@{}}
+\toprule
+{\color{blue} A}:\;&I have one large black dot by itself. Do you have it? \\
+{\color{red} P}:\;&Yes, I do have that. \\
+{\color{blue} A}:\;&Let's pick that one. \\
+{\color{red} P}:\;&<select> {\color{red} red} \\
+{\color{blue} A}:\;&<select> {\color{blue} blue}\\
+\bottomrule
+\end{tabular}
 
-Footnotes are inserted with the \verb|\footnote| command.\footnote{This is a footnote.}
+\vspace{1em}
 
-\subsection{Tables and figures}
+\caption{
+An example of perspective-dependent ambiguity from a dialogue {\color{blue}agent} and human {\color{red}partner} playing \textsc{OneCommon}, taken from the evaluation of \citet{fried}.
+The players have different but overlapping circular views of a shared board,
+which contains dots of different shades, shapes, and sizes.
+The agent and partner must collaborate through dialogue in order to find and
+select a shared dot.
+This dialogue ends in failure, as the agent and partner did not account for perspective-ambiguity and prematurely selected different dots.
+}
+\label{fig:oc}
+\end{figure}
 
-See Table~\ref{tab:accents} for an example of a table and its caption.
-\textbf{Do not override the default caption sizes.}
+%\textbf{Example}
+Figure \ref{fig:oc} provides an example from \textsc{OneCommon},
+a collaborative reference game with a high degree of
+perspective-dependent ambiguity \citep{onecommon}.
+An agent and partner are given different but overlapping views of a game board
+and must jointly identify a shared dot through dialogue.
+% The game terminates after both agent and partner have selected a dot.
+% The game is a success if they select the same dot and a failure otherwise.
+% The different but overlapping views is the source of perspective-ambiguity,
+Perspective dependent ambiguity stems from the different but overlapping views, and the degree of ambiguity depends on the number of overlapping dots.
+% whose degree depends on the number of overlapping dots.
+In this example, the agent's description (\emph{one large black dot}) is specific in their view,
+but actually resolves to a different dot in their partner's view --- unknown to both the agent and partner.
+% Unknown to both the agent and partner, they both confirm.
+The incorrect resolution and confirmation have an immediate irrevocable consequence:
+The agent and partner select different dots, failing the game.
 
-\subsection{Hyperlinks}
+%\textbf{Egocentric heuristic}
+This false positive confirmation results from an \textit{egocentric} heuristic \citep{keysar}.
+Agents utilizing an egocentric heuristic resolve
+referring expressions based mainly on their own perspective,
+% ignoring perspective-dependent ambiguity altogether.
+% The egocentric heuristic 
+failing to account for the fact that 
+the perspectives have partial overlap
+and there are unshared items which
+cannot be observed by the agent.
+While cognitively cheap, the egocentric heuristic can lead to systemic errors.
+Such errors are more pronounced with larger differences in perspectives,
+resulting in larger degrees of perspective-dependent ambiguity.
+Errors of this form can result in irrevocable mistakes
+that do not get corrected in follow-up interactions \citep{keysar}.
 
-Users of older versions of \LaTeX{} may encounter the following error during compilation: 
-\begin{quote}
-\tt\verb|\pdfendlink| ended up in different nesting level than \verb|\pdfstartlink|.
-\end{quote}
-This happens when pdf\LaTeX{} is used and a citation splits across a page boundary. The best way to fix this is to upgrade \LaTeX{} to 2018-12-01 or later.
+%\textbf{We deal with perspective-dependent ambiguity}
+%\justin{Our second contribution}
+%\justin{TOO VAGUE. start with what you have, end up with specific solution}
+In this work, we incorporate the partner's perspective into a collaborative dialogue system.
+Our approach centers on a partner model that predicts the partner's response given a question from the agent and the partner's unobserved perspective, modeled as a latent variable.
+The partner model reasons explicitly over shared and unshared
+aspects of the partner perspective, marginalizing over
+the unshared aspects.
+The agent uses the partner model to plan symbolically, asking maximally informative questions by maximizing the expected information gain with respect to the latent partner perspective.
+After observing the partner's response to the utterance, the agent uses the partner model to conservatively update its belief over shared perspective.
 
-\subsection{Citations}
+%Incorporating a planning model has a side effect of leading to richer plans than those performed by human players. As such, this approach makes it difficult to use supervised generation models trained on typically egocentric human players.
+%Preliminary results on human evaluation show that a templated generation system is difficult for human partners to understand.
+%To circumvent this issue we develop a more robust templated generation system to take advantage of the planning system.
+
+%\justin{new}
+% Our focus lies in inference rather than models.
+Experiments show that planning through the partner model outperforms a state-of-the-art fully supervised dialogue agent \citep{fried}.
+The supervised approach chooses plans based on an egocentric heuristic, and is limited by the strategies demonstrated in its training data.
+When applied to \textsc{OneCommon}, our approach utilizes richer plans than those demonstrated by humans and achieves a symbolic\footnote{
+Symbolic selfplay for \textsc{OneCommon} allows agents to
+directly communicate the symbolic representation of plans
+instead of describing them in natural language.
+} selfplay success rate of 85.2\%,
+a large improvement over the prior state-of-the-art language selfplay success rate of 62.4\% \citep{fried}.
+%the dialogue planner wins 85.2\% of games, compared to 77\% with a 
+
+\begin{comment}
+\justin{old}
+%\textbf{Experiments}
+%\justin{As our third contribution}
+We demonstrate the ability of our method to prevent perspective-dependent ambiguity on \textsc{OneCommon}.
+We compare models using the \emph{plans} (choices of dots to mention) they produce, evaluating whether plans resolve correctly to suitable referents in the partner context.
+We find that planning
+with a perspective-aware partner model
+makes fewer errors than an egocentric baseline from prior work \citep{fried}.
+On a static validation corpus consisting of 2,341 turns from 518 human-human dialogues, 
+our proposed model achieves a 47\% reduction in the total number of incorrectly
+resolved plans compared to a state-of-the-art baseline \citep{fried}.
+\justin{language static eval, symbolic self-play, language self-play, human play}
+\end{comment}
+
+%\daniel{this looks good overall, especially the motivation and presentation of the setting! but the description of the contribution might not be clear to people who don't know the past work. Is there a way to concisely say what they both have in common -- planning that involves modeling the partner in some way, but past work makes the egocentric assumption and ours does not (not sure that they both model the partner in a similar-enough way, though, for this to be a helpful framing)}
 
 
 
-Table~\ref{citation-guide} shows the syntax supported by the style files.
-We encourage you to use the natbib styles.
-You can use the command \verb|\citet| (cite in text) to get ``author (year)'' citations, like this citation to a paper by \citet{Gusfield:97}.
-You can use the command \verb|\citep| (cite in parentheses) to get ``(author, year)'' citations \citep{Gusfield:97}.
-You can use the command \verb|\citealp| (alternative cite without parentheses) to get ``author, year'' citations, which is useful for using citations within parentheses (e.g. \citealp{Gusfield:97}).
 
-\subsection{References}
+\section{Related work}
+%\href{https://docs.google.com/spreadsheets/d/1msziHHiGaPg1lAOobA_uC_5RUKWTqP3b3kt3rUlBuGY/edit#gid=558997544}{spreadsheet}.
+%\textbf{perspective and common ground}
+\paragraph{Perspective in common ground} The study of perspective and its influence on \textit{common ground}, the shared knowledge between dialogue agents, has its roots in 
+pragmatics and linguistics \citep{stalnaker1970,clark1981,clark1983}.
+ Behavioural experiments studying the egocentric heuristic found that
+it can lead to irrevocable errors in human studies \citep{keysar}.
+% follow up work found the egocentric heuristic is used lazily, eg when there are errors people switch over.
+Computational work by \citet{perspective_reg} and \citet{dogan}
+utilize perspective to generate and understand referring expressions in a fully shared environment, but from different locations. In contrast to these works, where the perspective of the partner is known and conditioned on, in our setting the partner perspective is inferred and the environment is partially shared between partners.
 
-\nocite{Ando2005,borschinger-johnson-2011-particle,andrew2007scalable,rasooli-tetrault-2015,goodman-etal-2016-noise,harper-2014-learning}
+Perspective captures more than just spatial properties. Partner capability was considered in the context of reference games \citep{corona}, 
+where partner capabilities such as color-blindness were inferred in a single-turn visual reference game.
+%While he perspectives of others are unobserved but not directly modeled.
+%Instead, agent policies were trained end-to-end with policy gradient methods.
+While their approach did not model partner perspectives,
+we propose to directly model the partner perspectives as a latent variable.
 
-The \LaTeX{} and Bib\TeX{} style files provided roughly follow the American Psychological Association format.
-If your own bib file is named \texttt{custom.bib}, then placing the following before any appendices in your \LaTeX{} file will generate the references section for you:
-\begin{quote}
-\begin{verbatim}
-\bibliographystyle{acl_natbib}
-\bibliography{custom}
-\end{verbatim}
-\end{quote}
-You can obtain the complete ACL Anthology as a Bib\TeX{} file from \url{https://aclweb.org/anthology/anthology.bib.gz}.
-To include both the Anthology and your own .bib file, use the following instead of the above.
-\begin{quote}
-\begin{verbatim}
-\bibliographystyle{acl_natbib}
-\bibliography{anthology,custom}
-\end{verbatim}
-\end{quote}
-Please see Section~\ref{sec:bibtex} for information on preparing Bib\TeX{} files.
+% Our work is inspired by these linguistic theories and experiments,
+% and also provides a computational model for dealing with differences in perspectives in the dialogue setting.
+% We demonstrate that mistakes due to perspective-dependent ambiguity in a dialogue setting with unobserved partner perspective can be reduced with an explicit latent-variable model of the partner.
+% \daniel{maybe move this to after the first para}
 
-\subsection{Appendices}
+%\textbf{20 qs}
+\paragraph{Informative question generation}
 
-Use \verb|\appendix| before any appendix section to switch the section numbering over to letters. See Appendix~\ref{sec:appendix} for an example.
+Work in question generation formulates information-seeking conversation as a 
+partially observable Markov decision process.
+There is one information seeker and one information holder.
+Methods use a single-turn partner-model heuristic to generate questions
+\citep{rao2018q,yu2019info}.
+% The information holder has a target referent in mind, which they must convey
+% to the information seeker.
+In this setting, the unobserved target referent is the only source of partial observability,
+meaning that information exchanged is reliable up to errors in language.
+In contrast, the different perspectives in \textsc{OneCommon} and resulting
+perspective-dependent ambiguity have a large effect on communication,
+often turning unambiguous utterances in the agent's perspective into ambiguous ones for the partner.
 
-\section{Bib\TeX{} Files}
-\label{sec:bibtex}
+%\textbf{Dialogue games and partner modeling}
+\paragraph{Task-oriented dialogue}
+Task-oriented dialogue often uses multi-turn model-based planning.
+Here planning is performed in the space of language via rollouts or tree-search
+\citep{dnd,yarats2017rollout,ingress,jang2020bapomdp}.
+%Our work reduces perspective-dependent ambiguity by incorporating a distribution over unobserved context into the partner model.
+While we use a single-turn planning heuristic,
+our focus on improving partner models is complementary to multi-turn planning and can be combined in future work.
+%\justin{include all the onecommon papers and related games}
+%\daniel{might be worth thinking about the audience -- will they know model-based planning? from the PC list I saw, I'd guess yes}
 
-Unicode cannot be used in Bib\TeX{} entries, and some ways of typing special characters can disrupt Bib\TeX's alphabetization. The recommended way of typing special characters is shown in Table~\ref{tab:accents}.
+\paragraph{Reference generation}
+There is a long line of work on referring expression generation \cite[][\emph{inter alia}]{heeman-hirst-1995-collaborating,dale1995,jordan2005contentselection,krahmer-van-deemter-2012-computational,takmaz-etal-2020-refer}, particularly in grounded settings \cite[][\emph{inter alia}]{dale-viethen-2009-referring,mao2016generation,yu2017joint,takmaz-etal-2020-refer}.
+The OneCommon~\citep{onecommon} dialogue setting poses challenges for generation due to its partial observability and the non-identical views of its participants.
+Our method is most closely related to the  state-of-the-art approach to \textsc{OneCommon} \citep{fried} which forms the backbone of our method. We focus on relaxing the egocentric assumptions of this method by incorporating symbolic information-seeking planning and generation. 
 
-Please ensure that Bib\TeX{} records contain DOIs or URLs when possible, and for all the ACL materials that you reference.
-Use the \verb|doi| field for DOIs and the \verb|url| field for URLs.
-If a Bib\TeX{} entry has a URL or DOI field, the paper title in the references section will appear as a hyperlink to the paper, using the hyperref \LaTeX{} package.
+% interpretation \cite{schlangen2009incremental,liu2013modeling,kennington-schlangen-2015-simple}
+% or both \cite{mao2016generation,yu2017joint}.
+% Our objective also models the tradeoff, explored in past work on referring expression generation \cite{}, between producing utterances relevant in the discourse and world context and producing utterances that are discriminative.
+% Closest to ours is the work of \citet{takmaz-etal-2020-refer}, which builds models for reference interpretation and generation in the rich PhotoBook corpus \cite{haber2019photobook}, focusing on a non-interactive setting with static evaluation on reference chains extracted from human-human dialogues.
+% \red{
 
-\section*{Limitations}
-EMNLP 2023 requires all submissions to have a section titled ``Limitations'', for discussing the limitations of the paper as a complement to the discussion of strengths in the main text. This section should occur after the conclusion, but before the references. It will not count towards the page limit.  
 
-The discussion of limitations is mandatory. Papers without a limitation section will be desk-rejected without review.
-ARR-reviewed papers that did not include ``Limitations'' section in their prior submission, should submit a PDF with such a section together with their EMNLP 2023 submission.
+\begin{comment}
+\begin{figure}
+\centering
 
-While we are open to different types of limitations, just mentioning that a set of results have been shown for English only probably does not reflect what we expect. 
-Mentioning that the method works mostly for languages with limited morphology, like English, is a much better alternative.
-In addition, limitations such as low scalability to long text, the requirement of large GPU resources, or other things that inspire crucial further investigation are welcome.
+\scalebox{1.1}{
+\begin{tikzpicture}
 
-\section*{Ethics Statement}
-Scientific work published at EMNLP 2023 must comply with the \href{https://www.aclweb.org/portal/content/acl-code-ethics}{ACL Ethics Policy}. We encourage all authors to include an explicit ethics statement on the broader impact of the work, or other ethical considerations after the conclusion but before the references. The ethics statement will not count toward the page limit (8 pages for long, 4 pages for short papers).
+%\filldraw[gray!40] (0,0) circle (.3em);
+%\filldraw[gray!100] (.25,0) circle (.38em);
+%\filldraw[gray!160] (.5,0) circle (.45em);
+
+\filldraw[gray!160] (-.2,.6) circle (.45em); % 76
+\filldraw[gray!40] (-.7,-.3) circle (.4em); % 51
+\filldraw[gray!40] (.4,.1) circle (.3em); % 52
+\filldraw[gray!100] (.8,-.1) circle (.3em); % 66
+
+% left
+\filldraw[gray!140] (-1.3,-1.2) circle (.3em); % 13
+\filldraw[gray!100] (-1.6,-1.8) circle (.3em); % 14
+\filldraw[gray!110] (-.2,-1.1) circle (.4em); % 74
+
+% right
+\filldraw[gray!100] (-1,1.5) circle (.3em); % 28
+\filldraw[gray!100] (-.5,1.6) circle (.38em); % 69
+\filldraw[gray!160] (.8,1.8) circle (.45em); % 26
+
+% agent plans 76
+\node[
+    draw,circle,dashed,blue,thick, minimum size=1.2em,
+    label= left:$x$
+] (x) at (-.2,.6) {};
+% m label
+% \filldraw[gray!40] (.4,.5) circle (.3em); % 52
+%\node[
+%    draw,circle,dashed,red,thick, minimum size=.6em,
+%    label=left:$m$
+%] (m) at (.4,.1) {};
+
+\draw[dashed,blue,thick] (-.3,-.7) circle (5em);
+\draw[dashed,red,thick] (.2,1) circle (5em);
+
+% s label
+\draw[draw=black] (-1,-.6) rectangle (1.1,1);
+%\node (s) at (-.8,1) {$s$};
+\node (s) at (-1.2,0.2) {$s$};
+% u label
+\draw[draw=black] (-1.2,1.3) rectangle (1.1,2.1);
+%\node (u) at (-1.05,1.95) {$u$};
+\node (u) at (-1.4, 1.7) {$u$};
+% z label
+\node (z) at (-2.7,1) {$z$};
+% d label
+\node (d) at (-2.7,-.7) {$\mcD$};
+ 
+%\node (xe) at (-3.23,-3) {$x=$};
+%\filldraw[gray!40] (-2.5,-3) circle (.3em); % 52
+%\filldraw[gray!160] (-2.5,-3) circle (.45em); % 76
+%\draw[dashed,blue,thick] (-2.5,-3) circle (.6em);
+
+ 
+%\node (v) at (-.3, -3.6) {$w=$ Yes, is there a small grey one as well?};
+%\node (c) at (-2.9,-4.2) {$c=$ Yes};
+%\node (m) at (0,-4.2) {$m=$};
+%\filldraw[gray!40] (.7,-4.2) circle (.3em); % 52
+%\draw[dashed,red,thick] (.7,-4.2) circle (.5em);
+\end{tikzpicture}
+}
+\caption{The agent perspective $\mcD$ (blue circle) and partner perspective $z$ (red circle) in \textsc{OneCommon}.
+The symbolic agent plan $x$ consists of a single dot,
+but can be any subset of dots in the $\mcD$.
+}
+\label{fig:xz}
+\end{figure}
+\end{comment}
+
+\section{Partner Modeling in Reference Games}
+\label{sec:planning}
+%\justin{bad transition}
+
+Collaborative reference games pair an agent and a partner in order to agree on a shared object through natural language dialogue.
+At each turn, the agent or partner may decide to terminate the game and make a selection.
+Once either the agent or their partner terminates, the other player must also act (without observing the other's choice). If both agent and partner agree, both win; otherwise, both fail. 
+% Along with many communication challenges, these games force partners to navigate ambiguities arising from differing perspectives.
+% \daniel{maybe a reminder about why this is challenging}
+
+Our approach to reference games separates planning of utterances (choosing what to talk about) from surface realization (choosing how to say it).
+At each turn, our agent produces an utterance plan $x$ by using a \emph{partner model}, which simulates the partner's possible responses, $y$, given their hidden perspective, $z$.
+% The partner model jointly models the partner response and perspective given the agent plan.
+The agent uses the partner model to infer the partner's perspective and predict the partner's responses to the agent's plans.
+% The agent uses this partner model to both find effective plans
+% and update its belief over the partner perspective given a partner response.
+We first give an overview of the partner model 
+and planning procedure in this section.
+% with details of its application to \textsc{OneCommon} in Section \ref{sec:plan-oc}.
+
+%\textbf{perspective-dependent ambiguity causes failures}
+\begin{comment}
+\justin{Sample size is too small: remove.}
+Previous computational approaches to \textsc{Onecommon}
+do not take into account perspective-dependent ambiguity.
+We attribute a large percentage of game failures
+in a state-of-the-art approach \citep{fried} to \textsc{OneCommon} to perspective-dependent ambiguity, based on an analysis we perform of a sample of their system outputs.
+In our analysis, we find that 25\% of games between humans and the model of \citet{fried} fail due to perspective-dependent ambiguity
+(out of a random sample of 20 games from the 200 human-agent evaluation games in this work).
+We hypothesize that we can improve task success by explicitly modeling the partner's perspective, reducing partner-dependent ambiguity.%
+% This is a result of the previous approach's decision to utilize the egocentric heuristic.
+\footnote{
+Perspective-ambiguity does not account for all failures.
+Other causes for failure include a lack of attention from the human partner or misinterpretation of language.
+}
+\end{comment}
+% restate goal and contribution
+\noindent \textbf{Partner model}
+We model the partner's perspective as a latent variable, infer the value for this variable over the course of a game, and use it to plan generation.
+%This encourages the agent to avoid miscommunication by simulating how the partner would respond given different possible perspectives.
+%\daniel{this is a bit redundant with the text at the beginning of the section, which is fine but one of the two could be shortened for space}
+This contrasts with a typical egocentric heuristic, as used in \citet{fried}, which assumes the partner's perspective
+is identical to the agent's.
+
+The partner model predicts a distribution over the partner response $y$ given the agent plan $x$ under the latent shared perspective $z$, and decomposes as:
+$$p(y \mid x) = \sum_z p(y \mid x,z)p(z).$$
+%\daniel{define $x$, either here or (preferably) in the previous section - at least say it's a symbolic representation that a dialogue generation model could then use, and something about what it represents -- eg the objects to mention and their attributes. You could say that we factor content selection from surface realization, and x is the selected content?}
+% \daniel{is the partner model $p(y,z\mid x)$ or $p(y \mid x,z)$?}
+
+% planning
+\noindent  \textbf{Planning}
+The agent uses the partner model to plan
+what to say next, by choosing
+% Planning finds 
+the plan $x$ that maximizes the expected information gain  \citep{lindley} about the shared perspective $z$,
+defined as
+$$\argmax_x H[z] - \Es{y \mid x}{H[z \mid x,y]},$$
+where $H[z]$ is the entropy of the prior\footnote{The prior entropy $H[z]$ in the definition of information gain is constant with respect to
+the plan $x$, and can be dropped from the objective.}
+ and $H[z\mid x,y]$ the posterior,
+which requires marginalizing over $z$.
+
+% \noindent  \textbf{Generation}
+%Given a plan $x$, we generate a descriptive utterance that conveys this plan faithfully to the partner using a templated generation system. We provide the details in Appendix \ref{sec:generation}.
+
+% belief update
+\noindent \textbf{Belief update}
+After observing the partner response $y$, the agent updates its belief $p(z)$ over the shared
+with Bayes' rule:
+$$p(z \mid x, y) = p(y \mid x,z)p(z) / \sum_z p(y,z \mid x)$$
+This is performed iteratively after each turn,
+and requires marginalizing over possible shared perspectives.
+
+\noindent \textbf{Selection}
+After gathering information through planning and
+incorporating information through belief updates,
+the agent must decide when it has built enough common ground, collaboratively identifying a shared dot with its partner.
+We set a threshold on the belief entropy, $H[z]$,
+which determines when the agent should transition
+from information gathering to ending the game.
+%\daniel{How is selection performed?}
+% game specific, will loop back to this later
+
+\section{Planning in \textsc{OneCommon}}
+\label{sec:plan-oc}
+
+We focus on applying partner modeling to \textsc{OneCommon} \citep{onecommon}, which represents a class of collaborative reference games \citep{mf,pb} where only a subset of each player's perspective is shared, resulting in perspective-dependent ambiguity. 
+% \citep{onecommon}.
+
+In \textsc{OneCommon}, the agent's known perspective $\mcD$ consists
+of 7 dots in its view.
+%The agent perspective stays constant for a particular game.
+Each dot has a set of features: size, color, and position in the 2D plane.
+All features are continuous.
+The main challenge of the game is that the partner perspective is also a view of 7 dots,
+Between 4--6 of those dots are shared with the agent
+perspective which we denote as the shared perspective $z$.
+Additionally there are a set of unshared dots $u$ the fill out the partner perspective.
+An example is given in Figure \ref{fig:xzy}.
+Note that a smaller number of shared dots increases the likelihood that plans get misresolved to unshared dots, increasing perspective-dependent ambiguity.
+
+The agent communicates with the partner by producing an utterance plan, $x$, which it then describes in natural language.
+This plan is a subset of the dots in the agent view, $x \subseteq\mcD$,
+that the agent will ask the partner about. The partner gives a response $y$ to the plan $x$, given their perspective $z$.
+In \textsc{OneCommon}, the partner responds in natural language;
+however, the partner model only models the partner response as a confirmation $y\in\set{\textsc{yes}, \textsc{no}}$,
+obtained by classifying natural language responses.
+
+
+Exact planning is intractable because the objects in the partner perspective have continuous-valued features.
+In this section, we describe simplifying assumptions for the partner model and inference procedure that make planning tractable.
+
+\begin{figure}
+\centering
+
+\scalebox{1.1}{
+\begin{tikzpicture}
+
+%\filldraw[gray!40] (0,0) circle (.3em);
+%\filldraw[gray!100] (.25,0) circle (.38em);
+%\filldraw[gray!160] (.5,0) circle (.45em);
+
+\filldraw[gray!160] (-.2,.6) circle (.45em); % 76
+\filldraw[gray!40] (-.7,-.3) circle (.4em); % 51
+\filldraw[gray!40] (.4,.1) circle (.3em); % 52
+\filldraw[gray!100] (.8,-.1) circle (.3em); % 66
+
+% left
+\filldraw[gray!140] (-1.3,-1.2) circle (.3em); % 13
+\filldraw[gray!100] (-1.6,-1.8) circle (.3em); % 14
+\filldraw[gray!110] (-.2,-1.1) circle (.4em); % 74
+
+% right
+\filldraw[gray!100] (-1,1.5) circle (.3em); % 28
+\filldraw[gray!100] (-.5,1.6) circle (.38em); % 69
+\filldraw[gray!160] (.8,1.8) circle (.45em); % 26
+
+% agent plans 76
+% \node[
+%     draw,circle,dashed,blue,thick, minimum size=1.2em,
+%     %label= left:$x$
+% ] (x) at (-.2,.6) {};
+% % m label
+% % \filldraw[gray!40] (.4,.5) circle (.3em); % 52
+% \node[
+%     draw,circle,dashed,red,thick, minimum size=.6em,
+%     %label=left:$m$
+% ] (m) at (.4,.1) {};
+
+\draw[blue,thick] (-.3,-.7) circle (5em);
+\draw[red,thick] (.2,1) circle (5em);
+
+% s label
+\draw[draw=black] (-1.5,-1.6) rectangle (0.1,0);
+%\node (s) at (-.8,1) {$s$};
+
+% u label
+% \draw[draw=black] (-1.2,1.3) rectangle (1.1,2.1);
+%\node (u) at (-1.05,1.95) {$u$};
+\node (u) at (-1.4, 1.7) {$u$};
+\node (s) at (-1.4,0.5) {$z$};
+% z label
+%\node (z) at (-2.7,1) {$z$};
+% d label
+\node (d) at (-2.7,-.7) {$\mcD$};
+\node (x) at (-1.7,-0.8) {$x$};
+ 
+% \node (xe) at (-3.23,-3) {$x=$};
+%\filldraw[gray!40] (-2.5,-3) circle (.3em); % 52
+% \filldraw[gray!160] (-2.5,-3) circle (.45em); % 76
+% \draw[dashed,blue,thick] (-2.5,-3) circle (.6em);
+
+\node (v) at (-0, -3) {\textit{Do you have a triangle of one  gray dot ... }};
+
+\node (y) at (-0,-3.6) {$y=$ \textsc{No}};
+% \node (m) at (0,-3.6) {$m=$};
+% \filldraw[gray!40] (.7,-3.6) circle (.3em); % 52
+% \draw[dashed,red,thick] (.7,-3.6) circle (.5em);
+
+%\node (v) at (-0, -4.2) {$y=$ No, I don't see those.};
+
+\end{tikzpicture}
+}
+\caption{In \textsc{OneCommon},
+the agent's perspective $\mcD$ is represented by the large blue circle,
+and the partner's unobserved perspective by the red.
+The shared dots $z$ are in both perspectives,
+while the unshared dots $u$ are only in the red circle. 
+The agent plan $x$ is given by the dots in the box,
+and also described in language.
+The partner response $y$ is a binary confirmation.
+}
+\label{fig:xzy}
+\end{figure}
+
+\subsection{Partner model}
+
+% There are two challenges for planning with a partner model in \textsc{OneCommon}.
+% First, marginalizing over the unobserved partner perspective, $\int_z p(y,z\mid x)dz$, is intractable because the dots in $z$ have continuous-valued sizes, colors, and positions.
+% % This is solved by discretization.
+% We address this using feature discretization.
+% Second, the number of possible discretized partner perspectives $z$ is still large.
+% We make marginalization tractable by decomposing the partner perspective $z$ into wo components: dots which are shared and unshared with the agent, %dots which are shared and unshared with the agent,
+% and constrain the partner model to reason about them separately.
+% breaking down the computation of marginalization into tractable steps.
+
+We build a partner model by factoring the shared perspective $z$ and partner response $y$ as illustrated in Figure \ref{fig:xzy}. 
+Formally,
+\begin{align*}
+p(y \mid x) &= \sum_z p(y\mid x,z)p(z) \\
+&= \sum_{z,u}  p(y \mid x, z, u)p(z)p(u),
+\end{align*}
+where we introduce the latent variable $u$ representing the unshared dots in the partner perspective.
+
+The shared dot prior, $p(z)$, is a distribution over subsets of $\mcD$, indicating which dots in the agent perspective $\mcD$ are shared with the partner.
+The model $p(z)$ is initially uniform over dot subsets at the start of a game,
+but is updated given evidence from the partner response $y$ at the end of each turn, $p(z \mid x, y)$. For notational simplicity we focus on the first turn.
+
+The unshared dot prior, $p(u)$, is a distribution over the remaining partner dots.
+Since the dots in $u$ are unobserved by the agent, we parameterize $p(u \mid s)$ using a uniform distribution over discretized features for each dot.
+We ignore spatial features for dots in $u$
+and discretize the other originally continuous features: size and color.%
+\footnote{
+We discretize size and color uniformly into 3 buckets based on their absolute range
+across \textsc{OneCommon}.
+}
+
+
+%\justin{optional ->}
+%The support of $p(u \mid s)$ is larger than $p(s)$: for $|u| = 3$, there are $9^3 = 728$ feature combinations.
+
+%\justin{optional ->}
+% The size of the support of $p(z)$ increases multiplicatively with the size of $p(u \mid s)$, making marginalization computationally costly.
+% \daniel{insert forward reference here to where you describe how you address this?}
+
+%\noindent \textbf{Response}
+% The response model,
+% % $$p(y \mid x,z) = p(c \mid x,z)p(m\mid z)p(w\mid c,m),$$
+% factors into unshared, confirmation, and word models.
+The confirmation model, $p(y \mid x,z)$, checks whether a partner will confirm or deny the agent plan. The partner confirms if they are able to resolve the plan $x$ to their perspective. Given a fully observed $z$ and $u$, resolution of a plan $x$ is performed by matching the features of $x$ to $z$ and $u$.
+There are no trained parameters in resolution, as it depends only on the features of dots in $x$, $z$, and $u$.
+See Appendix \ref{sec:feature-resolution} for the details of feature-based resolution.
+
+In order to avoid jointly enumerating $z$ and $u$, the model reasons separately about $z$ and $u$ by making the simplifying assumption that plans are fully in $z$ or $u$.
+This means that the model will deny if part of $x$ is in $z$, while the remainder is in $u$ (and $x$ is not fully contained in either $z$ or $u$):
+\begin{align*}
+p(y=\textsc{no}\mid x) &=\sum_{z,u} p(y=\textsc{no} \mid x, z, u)p(z,u)\\
+&=\sum_z p(y=\textsc{no}\mid x, z )p(z)\\
+&\quad \cdot \sum_u p(y=\textsc{no}\mid  x, u )p(u).
+\end{align*}
+Given the unsuccessful resolution of $x$ to both $z$ and $u$, the partner denies accurately with probability $\theta$, a hyperparameter.
+
+% The confirmation model, $p(c \mid x,z,u)$, 
+% checks if the partner confirms our plan
+% based on their perspective.
+% We make the simplifying assumption that a confirmation,
+% $c = \text{\textsc{yes}}$, indicates that a plan $x$ resolves fully to either \justin{does either imply exclusive? its not an exclusive or} $z$ or $u$.\footnote{We ignore overlaps for computational efficiency, see Appendix \ref{sec:marginal-confirmation}}.
+% % This means that the partner disconfirms if part of $x$ resolves to $s$ and the remainder to $u$,
+% % and there is no other way to resolve $x$ to either $s$ or $u$.
+% % We demonstrate how this assumption improves the computational complexity of computing the marginal confirmation distribution
+% % in Appendix \ref{sec:marginal-confirmation}.
+% When considering matches to $z$ all bucketed features (size, color, and spatial position) are checked.\footnote{
+% The pairwise spatial position between dots  is bucketed into four
+% relations: 
+% above-left, above-right, below-left, or below-right.
+% }
+% When considering possible matches to $u$, spatial features are ignored for efficiency.
+
+%\noindent \textbf{Response}
+%Given a successful resolution of $x$ the partner confirms with probability $\theta$.
+% The same parameter $\theta$ also determines disconfirmation given unsuccessful resolution.
+% \daniel{how is $\theta$ set?}
+
+
+% The mention model, $p(m \mid z)$, is a distribution over
+% possible partner referents, represented as subsets of $z$.
+% We assume that partner referents are not split between $s$ and $u$:
+% mentions $m$ are chosen by first choosing either $s$ or $u$ with equal probability, then uniformly choosing a subset of dots from either $s$ or $u$ respectively.
+% % allows same distributive trick
+
+%The utterance model, $p(y \mid c)$, is a uniform distribution over sentences that confirm or deny the plan. \srush{This part needs to actually be written.}
+
+\subsection{Inference}
+\label{sec:inference}
+
+% In the remainder of this section, we give the specifics of inference in \textsc{OneCommon}.
+% As the goal of \textsc{OneCommon} is to find a dot in common,
+% The agent plans by optimizing 
+% Throughout, the agent marginalizes over the uniform $p(u\mid s)$,
+% a conservative assumption that all unshared dots configurations are possible.
+% This causes the agent to avoid plans that are likely to be incorrectly resolved to the unshared dots regardless of any information gathered,
+% resulting in richer, more specific plans.
+%\daniel{Justify this better, e.g. move the text from  "Belief update" (``avoid plans... any information gathered'') here. Or, might be worth adding something to reinforce that beliefs do still update in a useful way if possible, as otherwise this may seem like a big limitation. This doesn't have to come at this point in the paper, but it could help generally to have e.g. a qualitative example showing how the belief over the observed dots changes as we get more utterances.}
+
+During inference, we need to compute $p(y \mid x)$ for all plans $x$,
+which can be done in two steps: First, we marginalize over the unshared dots $u$.
+This marginalization can be expressed in closed form.
+For the details, see Appendix \ref{sec:unshared-marginal}.
+Second, we marginalize over the possible set of shared dots $z$.
+The computational cost of marginalization is the size of the power set of $\mcD$, $O(2^{|\mcD|})$.
+
+%\footnote{Marginalization over the unshared perspective in the partner model can be precomputed for an entire dialogue given the agent perspective $\mcD$, thanks to the specifics of the partner model parameterization. See Appendix \ref{sec:information-gain} for the details on precomputing marginal distributions for planning.}
+
+We utilize this distribution to compute the posterior on the shared perspective $z$, after observing a partner response to a plan,
+$$ p(z \mid x,y) = \frac{ p(z, y \mid x)}{p(y \mid x)}.$$
+This posterior then allows us to perform optimization over plans with respect to the expected information gain, as well as update our beliefs given the partner response.
+
+% Accounting for the unshared dots in the partner perspective in this manner encourages the agent to choose plans which are less likely to have counterparts that only the partner can see.
+
+\noindent \textbf{Planning} Planning optimizes the expected information gain with respect to the shared perspective $z$:
+$$\argmin_x \Es{y\mid x}{H(z \mid x,y)}.$$
+Computing $p(y \mid x)$ has cost $O(2^{|\mcD|})$,
+while there are also $O(2^{|\mcD|})$ plans.\footnote{
+Plans $x$ are subsets of $\mcD$ that the agent would like to ask the partner about.
+}
+As a result, optimizing this objective takes $O(2^{2|\mcD|})$ computation, and is performed in less than one second on CPU.% in real-time.
+% \daniel{might be a good place to say that this is still fast enough to run on a CPU in real-time, or give a forward ref to where you say that}
+
+\textbf{Belief update}
+The belief update directly uses the posterior distribution $p(z \mid x,y)$, as described in Section \ref{sec:planning}.
+
+During gameplay in \textsc{OneCommon}, the agent either directly observes the symbolic response $y$ or receives a description of $y$ in natural language.
+In order to process the natural language dialogue,
+we use a classifier to extract $y$ from natural language. 
+Additionally, the partner can mention dots of their own, either symbolically or described in text.
+The agent incorporates partner mentions into its belief by treating them as a confirmed plan.
+We use another classifier to extract partner mentions from text.
+We give the details of both the response and mention classifiers in Section \ref{sec:exp}.
+
+\textbf{Selection}
+To determine when to select a dot, the agent uses a threshold on the entropy $H[z]$, given by the hyperparameter $\tau$.
+The agent them communicates which dot to select by
+describing the configuration of four dots with the
+highest marginal probability of being shared,
+as well as the dot within that configuration that is most likely to be shared.
+The agent then selects the described dot.
+
+\section{Experimental setup}
+\label{sec:exp}
+We evaluate our method, the Partner Planner, on the \textsc{OneCommon} dataset \citep{onecommon}.
+We perform two evaluations:
+First, we evaluate the number of incorrectly resolved plans generated by the Partner Planner given a static, natural language dataset.
+Second, we evaluate the Partner Planner in dynamic, symbolic selfplay.
+
+
+\textbf{Static plan evaluation}
+In order to show that resolving perspective-dependent
+ambiguity reduces errors,
+we perform automatic evaluation of plans by evaluating whether the agent plan is incorrectly resolved by the partner model.
+A plan is incorrectly resolved if the plan is not empty and the partner does not resolve the plan to any
+of the agent's intended referents.
+We evaluate this without language by directly feeding the feature
+representation of plans from the agent to the partner, who is a Partner Planner.
+
+We generate plans given natural language dialogue history from a validation split of \textsc{OneCommon} following prior work \citep{fried}.\footnote{
+Prior work used 10-fold cross-validation.
+We use models from prior work trained on one fold, and evaluate our approach
+on the validation set for that fold.
+In particular, we use fold 1 from prior work.
+}
+For each turn in the human-generated dialogue, we generate a plan from our model
+and label that plan as either a success or failure using the procedure above.
+We evaluate on 518 validation games, which have different numbers of shared dots: either 4, 5, or 6.
+Fewer shared dots results in more perspective-dependent ambiguity.
+
+\textbf{Symbolic selfplay}
+We also evaluate the Partner Planner on symbolic selfplay,
+where it plays the full \textsc{OneCommon} game with a copy of itself using symbolic communication.
+We evaluate only on the setting with the most perspective-dependent ambiguity, 4 shared dots.
+In symbolic selfplay, agents must perform planning, belief updates, and selection.
+The Partner Planner is able to exactly communicate confirmations and dot features (bucketed size, color, and relative positions).
+We compare the game success rate of the Partner Planner to success rate of the baseline by \cite{fried} and human performance on language selfplay.
+Language inherently has more noise than symbolic representations,
+meaning symbolic selfplay is an upper bound on performance with language.
+
+\textbf{Systems}
+We focus evaluation on the Partner Planner,
+which reasons about shared and unshared dots.
+We consider an ablated version, which does not model unshared dots.
+
+As a baseline, we compare to an agent from prior work, which does not account for
+perspective-dependent ambiguity \citep{fried}.
+The baseline model chooses plans based on the round-trip probability from an utterance back to the plan,
+which is an egocentric heuristic and also does not account for
+uncertainty over shared dots.
+The baseline agent chooses 8 plans and 64 utterances for each plan, then chooses the
+plan and utterance pair with the highest probability of recovering the plan give
+the utterance using a reference resolution model applied only to the agent's own context.
+
+%As a final experiment, we evaluate the Partner Planner when partnered with a human partner on \textsc{OneCommon}, where the interaction takes place using natural language. We conduct XYZ dialogues on Amazon's Mechanical Turk (AMT) by pairing humans with one of 3 systems: Partner Planner, \citet{fried}, and another human. \justin{num trials, payment}
+
+\textbf{Hyperparameters}
+For the Partner Planner, we set the response faithfulness probability $\theta = 0.95$.
+We determine the selection entropy threshold by running grid search over $\tau \in \set{1,1.5,2}$ on symbolic selfplay, and pick the value with the highest success rate.
+
+The partner response classifier is a RoBERTa model \citep{roberta}, with a second stage of fine-tuning performed on 147 annotated dialogue turns.
+We annotate the text each turn as a confirmation, denial, or no response.
+The model is originally fine-tuned on sentiment \citep{heitmann2020}.
+
+For mention classification from text, we use a mention prediction network from past work \citep{fried}.
+The mention prediction network explicitly models relationships between mentions using a conditional random field with neural potentials.
+
+\begin{table}[!t]
+\centering
+\begin{tabular}{lrrrr}
+\toprule
+%\multirow{2}{*}{Model}& \multicolumn{3}{c}{Overlap size} &\multirow{2}{*}{Total}\\
+& \multicolumn{3}{c}{\# shared} &\\
+\cmidrule{2-4}
+%                                 & 4   & 5   & 6   &\\
+Agent                   & 4  & 5  & 6  & Total\\
+\midrule
+Partner Planner         & 26 & 12 & 5  & 43  (12)\\
+\quad -unshared         & 70 & 61 & 22 & 153 (22)\\
+\citet{fried}           & 28 & 17 & 4  & 49  (17)\\
+\bottomrule
+\end{tabular}
+\caption{\label{tbl:static-plans}
+The number of incorrectly resolved plans in
+automatic feature-based evaluation on 519 static validation dialogues
+(2,341 turns).
+The total number of errors made in the first turn of a dialogue is shown in parentheses for each agent.
+A lower number of incorrect plans is better.
+}
+\end{table}
+
+\section{Results}
+\textbf{Static plan evaluation}
+Directly modeling and marginalizing over unobserved partner perspective results in fewer
+errors than the egocentric heuristic from \citet{fried}, obtaining a 12\% reduction in errors as shown in Table \ref{tbl:static-plans}.
+Additionally, the number of incorrectly resolved plans from Planner is much lower than an ablated planner that does not model unshared dots, a 72\% reduction.
+
+We hypothesize that the baseline model of \citet{fried} makes fewer errors because it is able to repeat plans mentioned in the static dialogue.
+The Partner Planner does not often repeat plans, as there is little information gained.
+When restricted to the plan proposals from the first turn of a static human-demonstrated dialogue, where no plans can be copied, the Partner Planner outperforms the baseline by a larger margin, as shown in Table \ref{tbl:static-plans}.
+
+We note that the absolute number of resolution errors is small relative to the total number of turns.
+We hypothesize that this is because of the nature of static evaluation.
+Static evaluation considers next step plan proposals given human dialogue,
+preventing agents from steering the dialogue themselves.
+
+\begin{table}[!t]
+\centering
+\begin{tabular}{lrr}
+\toprule
+Agent                   & Success & Avg \# turns\\
+\midrule
+Partner Planner         & 85.2\%  & 10.10\\
+\quad -unshared         & 77.0\%  & 11.69\\
+\citet{fried}           & 62.4\%  & -\\
+Human                   & 65.8\%  & 4.97\\
+\bottomrule
+\end{tabular}
+\caption{\label{tbl:selfplay}
+The success rate of different agents in selfplay on the hardest setting of \textsc{OneCommon}, with 4 shared dots.
+The Partner Planner and ablated version communicate symbolically,
+while the \citet{fried} baseline and human
+performance use language.
+A higher success rate is better.
+The human performance is from the \textsc{OneCommon} dataset
+\citep{onecommon}.
+}
+\end{table}
+
+\textbf{Symbolic selfplay}
+The Partner Planner achieves strong performance in symbolic selfplay, as shown in Table \ref{tbl:selfplay}.
+The ablated version, which does not model unshared dots, also performs well, but worse than the full Partner Planner.
+This demonstrates the utility of modeling unshared perspective.
+
+Both the full and ablated Partner Planner outperform the baseline of \citet{fried} and coached human performance from the training data of \citet{onecommon}, demonstrating the utility of partner modeling.
+Much of this success comes from the ability to control the
+belief entropy selection heuristic, as shown by the performance of the ablated Partner Planner over human performance.
+The selection heuristic encourages the Partner Planner to be more patient and gather more information before selecting than most human participants,
+reflected in the average number of turns per game.
+% plot of success rate vs number of turns
+
+
+%\textbf{Human evaluation}
+%TBD
+
+\begin{comment}
+\begin{table}[!t]
+\centering
+\begin{tabular}{lrr}
+\toprule
+%                                 & 4   & 5   & 6   &\\
+Agent               & $N$ & Success\\
+\midrule
+Partner Planner     &  A  & X\%  \\
+\citet{fried}       &  B  & Y\% \\
+Human               &  C  & Z\% \\
+\bottomrule
+\end{tabular}
+\caption{\label{tbl:human}
+The success rate of different agents in human evaluation on the hardest setting of \textsc{OneCommon}, with 4 shared dots.
+All agents communicate with a human partner via natural language.
+Each agent type plays $N$ games with a human partner.
+A higher success rate is better.
+}
+\end{table}
+\end{comment}
+
+\section{Future Work}
+%\textbf{Incorporate language, discuss fidelity and OOD-ness for generation/resolution}
+%\textbf{Extension to \textsc{MutualFriends}}
+For future work, the current model will be extended with text generation in order to play \textsc{OneCommon} with humans.
+Preliminary experiments using utterance generation methods from prior work by \citet{fried} found that the plans proposed by the Partner Planner were out-of-distribution for supervised methods, resulting in many errors in generation.
+Further experiments with a templated generation system found that the resulting templates were too difficult to understand for human partners.
+Future work will experiment with generation systems that account for utterance processing cost, balancing the amount of information conveyed and fluency.
+
+Additionally, the scalability of the method will be tested on dialogue games with larger environments.
+
+%\section{Conclusion}
+%TBD
 
 \section*{Acknowledgements}
-This document has been adapted by Yue Zhang, Ryan Cotterell and Lea Frermann from the style files used for earlier ACL and NAACL proceedings, including those for 
-ACL 2020 by Steven Bethard, Ryan Cotterell and Rui Yan,
-ACL 2019 by Douwe Kiela and Ivan Vuli\'{c},
-NAACL 2019 by Stephanie Lukin and Alla Roskovskaya, 
-ACL 2018 by Shay Cohen, Kevin Gimpel, and Wei Lu, 
-NAACL 2018 by Margaret Mitchell and Stephanie Lukin,
-Bib\TeX{} suggestions for (NA)ACL 2017/2018 from Jason Eisner,
-ACL 2017 by Dan Gildea and Min-Yen Kan, NAACL 2017 by Margaret Mitchell, 
-ACL 2012 by Maggie Li and Michael White, 
-ACL 2010 by Jing-Shin Chang and Philipp Koehn, 
-ACL 2008 by Johanna D. Moore, Simone Teufel, James Allan, and Sadaoki Furui, 
-ACL 2005 by Hwee Tou Ng and Kemal Oflazer, 
-ACL 2002 by Eugene Charniak and Dekang Lin, 
-and earlier ACL and EACL formats written by several people, including
-John Chen, Henry S. Thompson and Donald Walker.
-Additional elements were taken from the formatting instructions of the \emph{International Joint Conference on Artificial Intelligence} and the \emph{Conference on Computer Vision and Pattern Recognition}.
+Ge Gao, Jack Morris, Nicholas Tomlin, Woojeong Kim, Celine Lee, Alane Suhr.
+
+\begin{comment}
+\section*{Limitations}
+There is a tradeoff between expressivity and  controllability for dialogue partner modeling.
+In this work, we emphasize controllability by explicitly modeling certain aspects of the partner perspective while not accounting for others, resulting in biased agents.
+The failure to account for
+particular partner aspects may affect fairness and equity with a diverse pool of partners.
+\end{comment}
+%\section*{Ethics Statement}
 
 % Entries for the entire Anthology, followed by custom entries
 \bibliography{anthology,custom}
@@ -273,9 +937,206 @@ Additional elements were taken from the formatting instructions of the \emph{Int
 
 \appendix
 
-\section{Example Appendix}
-\label{sec:appendix}
+%\section{Templated generation}
+%\label{sec:generation}
+%TBD
 
-This is a section in the appendix.
+\section{Feature-based resolution}
+\label{sec:feature-resolution}
+Feature-based resolution featurizes a plan $x$
+then compares the features to all subsets of dots
+in the partner domain $\mcD$.
+The set of features used for each plan $x$ is given by the shape and size
+each dot in the plan, bucketed into 3 bins based on the range of each feature.
+The pairwise positions, limited to above-left, above-right, below-left, and below-right, are also contained in the feature set.
+We provide an example of feature-based resolution in Figure
+\ref{fig:resolution-example}.
+
+Given a plan $x$, feature-based resolution
+must compare all the features of the plan,
+of which there are $O(|x|^2)$,
+to all partial permutations of subsets size $|x|$ taken from $\mcD$,
+of which there are $O(|\mcD|^{|x|})$.
+This can be precomputed at the start of a dialogue.
+
+When resolving $x$ to unshared dots, we ignore spatial features.
+
+\begin{figure}[t]
+\setlength{\abovecaptionskip}{0pt}
+
+\centering
+
+\scalebox{1.1}{
+\begin{tikzpicture}
+
+
+\filldraw[gray!160] (-.5,.5) circle (.45em); % 76
+\filldraw[gray!40] (-.7,-.3) circle (.4em); % 51
+\filldraw[gray!100] (.8,0) circle (.3em); % 66
+\filldraw[gray!100] (-1,1.5) circle (.3em); % 28
+\filldraw[gray!100] (-.5,1.6) circle (.38em); % 69
+\filldraw[gray!160] (.8,1.8) circle (.45em); % 26
+\filldraw[gray!160] (.6,1) circle (.45em); % 26
+
+%\draw[dashed,blue,thick] (-.3,-.7) circle (5em);
+\draw[red,thick] (.2,1) circle (5em);
+
+\node[
+    draw,circle,dashed,red,thick, minimum size=1.2em,
+    label=below right:$a$
+] (a) at (-.5,.5) {};
+\node[
+    draw,circle,dashed,red,thick, minimum size=1.2em,
+    label=below right:$c$
+] (c) at (.8,1.8) {};
+\node[
+    draw,circle,dashed,red,thick, minimum size=1.2em,
+    label=below right:$b$
+] (b) at (.6,1) {};
+
+\node (f) at (.2, -1.5) {Feature representation};
+
+\node[anchor=west] (f1) at (-2.75, -2) {Dot 1: Large, dark};
+\node[anchor=west] (f2) at (-2.75, -2.5) {Dot 2: Large, dark, below-left Dot 1};
+
+\end{tikzpicture}
+}
+\vspace{1em}
+\caption{
+An example of feature-based resolution.
+The above feature representation for a pair of dots
+resolves to dot configurations $\set{(a,b), (a,c), (b,c)}$.
+}
+\label{fig:resolution-example}
+\end{figure}
+
+\section{Resolution to unshared dots}
+\label{sec:unshared-marginal}
+The partner model, with the assumption that
+$x$ cannot be split between $z$ and $u$,
+is given by
+\begin{align*}
+&p(y=\textsc{no} \mid x)\\
+&= \sum_{z,u}p(y = \textsc{no} \mid x,z,u)p(z)p(u)\\
+&\approx \sum_{z,u}p(y=\textsc{no} \mid x,z)p(z) p(y=\textsc{no} \mid  x,u)p(u)\\
+&= \sum_z p(y=\textsc{no} \mid x,z)p(z) \sum_u p(y=\textsc{no} \mid  x,u)p(u)\\
+&= \sum_z p(y=\textsc{no} \mid x,z)p(z) \sum_u p(y=\textsc{no},u \mid  x).
+\end{align*}
+The probability a plan $x$ resolves to the unshared dots $u$ is
+\begin{align*}
+\sum_u p(y=\textsc{no},u \mid x)
+&= 1-\theta {|u|\choose|x|}\frac{B^{2 \cdot (|u|-|x|)}}{B^{2\cdot|x|}},
+\end{align*}
+where $B$ is the feature bucket size,
+given $|u| \ge |x|$.
+This relies on the assumption that spatial features are ignored when resolving to unshared dots.
+
+\section{Planning objective}
+In addition to maximizing the information gain,
+we also add an entropy rate constraint to the planning objective,
+motivated by the entropy rate constancy and uniform information density hypotheses \citep{erc,uid,ercdial}.
+
+In order to enforce a limit on the entropy rate, 
+we limit the surprisal of the next mention proposals
+under a mention model $p(x_t | x_1,\ldots,x_{t-1})$ \justin{how to include partner mentions and confirmations?}.
+We could utilize the belief state $p(z = x_t)$ for this model \justin{include other history?}; however, this model is not sensitive to the ordering of plans in $h$.
+We model mentions with an linearly decaying cache model,
+\citep{cache}:
+\begin{align*}
+&p_{\text{cache}}(x_T \mid h)\\
+&\propto \prod_d e^{\beta m([x_T]_d,h)
+    \mathbf{1}([x_T]_d\in h)
+}
+e^{\alpha\mathbf{1}([x_T]_d \notin h)},
+\end{align*}
+where
+$$m([x_T]_d,h) = T - \argmax_t t\mathbf1([x_T]_d \in h_t),$$
+and $\beta$ and $\alpha$ are hyperparameters that control
+the cost of unmentioned dots and recency bias respectively.
+
+We also experiment with a supervised neural model \justin{include other history?}.
+
+\section{Partner confusion model}
+In the previous section, we introduced processing cost (as a channel capacity constraint) in the planning objective to limit the amount of information conveyed by an agent.
+This is an anti-causal approach: Adding processing cost to the objective does not model the effects of a plan.
+In this section we give a causal model of partner confusion as a result of processing cost.
+
+The generative process for a response, given in Section \ref{sec:plan-oc}, is given by:
+given a plan $x$, resolve that plan to the shared dots $z$ or unshared dots $u$. If the plan resolves to one or both, the partner gives a confirmation $y = \textsc{Yes}$.
+Unfortunately, this partner model assumes superhuman levels of resolution.
+
+In our human studies, we found that certain plans are difficult for humans to resolve. Plans that involve contextually vague color or size descriptors, or dots that are too far apart result in the denial of a plan that should have been confirmed.
+Additionally, we believe some human players were frustrated by the information-dense descriptions of inhuman model plans, leading to poor success rates.
+In this section we describe several changes to the partner model that better reflect the behaviour of a human partner.
+
+There are three desiderata:
+\begin{enumerate}
+\item Spatial locality: The partner will deny a plan if the dots are too far apart
+\item Channel capacity: The partner will deny a plan if there is too much new information
+\item Information locality: The partner has limited memory and will treat repeated old information as new information
+\end{enumerate}
+
+We incorporate these desiderata by building them into the partner model.
+We utilize a product of experts formulation,
+where we combine the original partner resolution model
+with a confusion model.
+The goal of the confusion model is to model the effort a human partner would be willing to put into resolving a plan.
+The product of experts formulation allows the confusion model to
+vote against confirmation,
+resulting in the response model predicting denial if the plan is theoretically resolvable, but too confusing for a human to actually understand.
+
+Let $h$ be the history of all previous plans,
+with $[h]_t = x_t$.
+The full partner response model is given by
+$$
+p(y \mid x, z, u, h)
+\propto \underbrace{p_r(y \mid x,z,u)}_{\text{resolution}}
+\underbrace{p_c(y \mid x,z,h)}_{\text{confusion}}.
+$$
+The confusion model itself is a product of experts,
+consisting of spatial and temporal confusion models:
+$$
+p_c(y\mid x,z,h) \propto
+\underbrace{p(y \mid x,z)}_{\text{spatial}}
+\underbrace{p(y \mid x,h)}_{\text{temporal}}.
+$$
+
+\subsection{Spatial model}
+For the spatial model, we assume a plan is more likely to be denied if the dots in the plan are far apart.
+A first approach would be to either use the distance between the furthest pair of dots, the sum of the pairwise distances between dots, or the area of the convex hull of the dots.
+However, as the distances of dots may vary,
+we instead use the relative rankings of dot distances.
+This mimics one possible method of dot resolution, where the partner first finds an anchor dot then searches nearby to find the remaining dots in the plan.
+As a result, we have
+$$
+p(y = \textsc{No} \mid x)
+= \min_{d\in x} \frac{
+\sum_{d'\in x} r(d,d')
+}{
+1+\sum_{i=7-|x|+1}^7 i
+},
+$$
+where $r(d,d')$ gives the rank of dot $d'$ to $d$ in order of increasing distance given the agent's perspective.
+%\justin{will fix up later}
+nswer both time, and take that into account with the partner model.
+
+\section{Supervised partner model}
+
+
+\section{Selection objective}
+
+\section{Describing plans}
+The success of an agent that plans through a partner model is limited
+by the accuracy of its partner model.
+While the partner model predicts the partner's reaction to the agent's plan,
+a human partner receives a natural language description of the agent's plan.
+For the partner model to be accurate, the plan description must be precise.
+
+Preliminary experiments indicate that a model from previous work \citep{fried}
+loses precision when describing plans involving more than a single dot.
+We hypothesize that this is due to data imbalance.
+
+
 
 \end{document}
+

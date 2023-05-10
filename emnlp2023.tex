@@ -50,7 +50,7 @@
 %
 % and set <dim> to something 5cm or larger.
 
-\title{Modeling Perspective-Dependent Ambiguity \\ in Grounded Collaborative Dialogue}
+\title{Tool-based Language Models for Grounded Dialogue}
 
 % Author information can be set in various styles:
 % For several authors from the same institution:
@@ -93,36 +93,27 @@ Carnegie Mellon University \\
 \begin{document}
 \maketitle
 \begin{abstract}
-Errors in reference generation and resolution can occur if
-a dialogue agent reasons incorrectly about their partner's perspective.
-We present, in a collaborative and visually grounded setting,
-a dialogue planner that infers its partner's perspective
-to produce referring expressions that the partner resolves correctly.
-The dialogue planner models the partner perspective as a latent variable,
-embedded in a partner model that is used for both model-based planning
-and incorporating evidence from partner responses. 
-We validate our approach on \textsc{OneCommon}, 
-a challenging dialogue game where players have large differences in their perspectives.
-In symbolic selfplay, where agents partner with a copy of themselves
-using symbolic communication,
-the dialogue planner has promising performance,
-winning 85.2\% of games.
-%In automatic evaluation of plan proposals,
-%reasoning about the partner's perspective as a latent variable
-%results in a 12\% reduction in the total number of incorrectly
-%resolved plans compared to a state-of-the-art baseline \citep{fried}.
+Large language models have demonstrated strong reasoning capabilities on textual tasks.
+Recent work has shown that, when given access to tools such as a code interpreter and
+vision models,
+language models are also able to reason about grounded phenomena with minimal supervision.
+In this work, we explore the use of tool-based language models for grounded dialogue.
+We build a modular dialogue system that represents dialogue state as executable code.
+The dialogue system has three components: a reader, planner, and writer.
+The reader uses few-shot prompted language models to turn utterances into code
+that modifies the dialogue state,
+the planner uses the symbolic representations afforded by code to plan what to say next,
+and the writer uses rule-based templated generations to realize the plans into text.
+We evaluate our system on a challenging grounded dialogue task,
+\textsc{OneCommon}, which, in its most challenging setting,
+has a human success rate of 65.8\%.
+Our system achieves strong results in language understanding,
+selfplay, and human play.
 \end{abstract}
 
-%\justin{Perspective-dependent ambiguity may be too general. Covers different field of view AND other differences in perspective, such as different feature processing such as colorblindness. Either specify a field-of-view specific ambiguity, or clarify which perspective-dependent ambiguity subtype we focus on. For feature swap experiment: swap black and white wp .5}
 
 \section{Introduction}
-%\textbf{Collaboration is impeded by ambiguity}
-Ambiguity is a key impediment to collaborative dialogue that makes
-linguistics actions, such as reference resolution and generation,
- difficult to execute.
-One cause of ambiguity in a grounded setting is differences in perspectives \citep{brownschmidt2011perspective}.
-Agents that incorrectly assume their partner shares their perspective  may make errors in reference generation and resolution.
-We refer to ambiguity induced by different perspectives as \textit{perspective-dependent ambiguity}.
+Topic sentence
 
 \begin{figure}[t]
 \setlength{\abovecaptionskip}{0pt}
@@ -187,29 +178,20 @@ This dialogue ends in failure, as the agent and partner did not account for pers
 \label{fig:oc}
 \end{figure}
 
-%\textbf{Example}
 Figure \ref{fig:oc} provides an example from \textsc{OneCommon},
 a collaborative reference game with a high degree of
 perspective-dependent ambiguity \citep{onecommon}.
 An agent and partner are given different but overlapping views of a game board
 and must jointly identify a shared dot through dialogue.
-% The game terminates after both agent and partner have selected a dot.
-% The game is a success if they select the same dot and a failure otherwise.
-% The different but overlapping views is the source of perspective-ambiguity,
 Perspective dependent ambiguity stems from the different but overlapping views, and the degree of ambiguity depends on the number of overlapping dots.
-% whose degree depends on the number of overlapping dots.
 In this example, the agent's description (\emph{one large black dot}) is specific in their view,
 but actually resolves to a different dot in their partner's view --- unknown to both the agent and partner.
-% Unknown to both the agent and partner, they both confirm.
 The incorrect resolution and confirmation have an immediate irrevocable consequence:
 The agent and partner select different dots, failing the game.
 
-%\textbf{Egocentric heuristic}
 This false positive confirmation results from an \textit{egocentric} heuristic \citep{keysar}.
 Agents utilizing an egocentric heuristic resolve
 referring expressions based mainly on their own perspective,
-% ignoring perspective-dependent ambiguity altogether.
-% The egocentric heuristic 
 failing to account for the fact that 
 the perspectives have partial overlap
 and there are unshared items which
@@ -220,9 +202,6 @@ resulting in larger degrees of perspective-dependent ambiguity.
 Errors of this form can result in irrevocable mistakes
 that do not get corrected in follow-up interactions \citep{keysar}.
 
-%\textbf{We deal with perspective-dependent ambiguity}
-%\justin{Our second contribution}
-%\justin{TOO VAGUE. start with what you have, end up with specific solution}
 In this work, we incorporate the partner's perspective into a collaborative dialogue system.
 Our approach centers on a partner model that predicts the partner's response given a question from the agent and the partner's unobserved perspective, modeled as a latent variable.
 The partner model reasons explicitly over shared and unshared
@@ -231,12 +210,6 @@ the unshared aspects.
 The agent uses the partner model to plan symbolically, asking maximally informative questions by maximizing the expected information gain with respect to the latent partner perspective.
 After observing the partner's response to the utterance, the agent uses the partner model to conservatively update its belief over shared perspective.
 
-%Incorporating a planning model has a side effect of leading to richer plans than those performed by human players. As such, this approach makes it difficult to use supervised generation models trained on typically egocentric human players.
-%Preliminary results on human evaluation show that a templated generation system is difficult for human partners to understand.
-%To circumvent this issue we develop a more robust templated generation system to take advantage of the planning system.
-
-%\justin{new}
-% Our focus lies in inference rather than models.
 Experiments show that planning through the partner model outperforms a state-of-the-art fully supervised dialogue agent \citep{fried}.
 The supervised approach chooses plans based on an egocentric heuristic, and is limited by the strategies demonstrated in its training data.
 When applied to \textsc{OneCommon}, our approach utilizes richer plans than those demonstrated by humans and achieves a symbolic\footnote{
@@ -245,26 +218,6 @@ directly communicate the symbolic representation of plans
 instead of describing them in natural language.
 } selfplay success rate of 85.2\%,
 a large improvement over the prior state-of-the-art language selfplay success rate of 62.4\% \citep{fried}.
-%the dialogue planner wins 85.2\% of games, compared to 77\% with a 
-
-\begin{comment}
-\justin{old}
-%\textbf{Experiments}
-%\justin{As our third contribution}
-We demonstrate the ability of our method to prevent perspective-dependent ambiguity on \textsc{OneCommon}.
-We compare models using the \emph{plans} (choices of dots to mention) they produce, evaluating whether plans resolve correctly to suitable referents in the partner context.
-We find that planning
-with a perspective-aware partner model
-makes fewer errors than an egocentric baseline from prior work \citep{fried}.
-On a static validation corpus consisting of 2,341 turns from 518 human-human dialogues, 
-our proposed model achieves a 47\% reduction in the total number of incorrectly
-resolved plans compared to a state-of-the-art baseline \citep{fried}.
-\justin{language static eval, symbolic self-play, language self-play, human play}
-\end{comment}
-
-%\daniel{this looks good overall, especially the motivation and presentation of the setting! but the description of the contribution might not be clear to people who don't know the past work. Is there a way to concisely say what they both have in common -- planning that involves modeling the partner in some way, but past work makes the egocentric assumption and ours does not (not sure that they both model the partner in a similar-enough way, though, for this to be a helpful framing)}
-
-
 
 
 \section{Related work}

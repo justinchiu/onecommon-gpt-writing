@@ -93,13 +93,22 @@ Carnegie Mellon University \\
 \begin{document}
 \maketitle
 \begin{abstract}
-Large language models have demonstrated strong reasoning capabilities on textual tasks.
-Recent work has shown that, when given access to tools such as a code interpreter and
+Two main points:
+1. Low-resource / minimal supervision.
+2. Code for step-by-step reasoning.
+
+Large language models, when given access to tools such as a code interpreter and
 vision models,
-language models are also able to reason about grounded phenomena with minimal supervision.
-In this work, we explore the use of tool-based language models for grounded dialogue.
-We build a modular dialogue system that represents dialogue state as executable code.
-The dialogue system has three components: a reader, planner, and writer.
+are able to perform grounded reasoning with minimal supervision.
+Prior work has tested these capabilities in the single-shot setting,
+with no interaction.
+We study the use of tool-based language models in grounded dialogue,
+where language models must utilize tools in context.
+In order to deal with the primary challenge of dialogue state tracking,
+we build a modular dialogue system that represents dialogue state as executable code.
+Maintaining dialogue state explicitly as interpretable code allows
+language models to break down complex reasoning into a simple step-by-step process.
+The dialogue system has three modules: a reader, planner, and writer.
 The reader uses few-shot prompted language models to turn utterances into code
 that modifies the dialogue state,
 the planner uses the symbolic representations afforded by code to plan what to say next,
@@ -113,7 +122,7 @@ selfplay, and human play.
 
 
 \section{Introduction}
-Topic sentence
+
 
 \begin{figure}[t]
 \setlength{\abovecaptionskip}{0pt}

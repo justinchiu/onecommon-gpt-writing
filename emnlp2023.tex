@@ -97,21 +97,19 @@ Carnegie Mellon University \\
 %1. Low-resource / minimal supervision.
 %2. Code for step-by-step reasoning.
 
-Large language models, when given access to tools such as a code interpreters and
-computer vision models,
-are able to perform grounded reasoning with minimal supervision.
-Prior work has tested tool-based language models in non-interactive settings.
+%Large language models, when given access to tools such as a code interpreters and computer vision models,
+%are able to perform grounded reasoning with minimal supervision.
+%Prior work has tested tool-based language models in non-interactive settings.
 We study the use of tool-based language models in grounded dialogue,
 where language models must utilize tools in context.
-In order to deal with the challenge of dialogue state tracking,
-we build a modular dialogue system that represents dialogue state as executable code.
-Maintaining dialogue state explicitly as interpretable code allows
-language models to break down complex reasoning into a simple step-by-step process.
-The dialogue system has three modules: a reader, planner, and writer.
-The reader uses few-shot prompted language models to turn utterances into code
-that modifies the dialogue state,
-the planner uses the symbolic representations afforded by code to plan what to say next,
-and the writer uses rule-based templated generations to realize the plans into text.
+Out-of-domain generalization is particularly challenging for large language models in grounded dialogue,
+where particular forms of grounding may not have been seen by the language model.
+We build a modular dialogue system that allows language models to do what they do best:
+understanding language, while deferring other tasks to other components.
+Our dialogue system represents dialogue state as executable code,
+using language models to manipulate the state code,
+a symbolic planner to decide what to say next,
+and a rule-based templated generator to realize symbolic plans into text.
 We evaluate our system on a challenging grounded dialogue task,
 \textsc{OneCommon}, which, in its most challenging setting,
 has a human success rate of 65.8\%.

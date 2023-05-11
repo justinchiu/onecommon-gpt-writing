@@ -97,13 +97,13 @@ Carnegie Mellon University \\
 %1. Low-resource / minimal supervision.
 %2. Code for step-by-step reasoning.
 
-Large language models, when given access to tools such as a code interpreter and
-vision models,
+Large language models, when given access to tools such as a code interpreters and
+computer vision models,
 are able to perform grounded reasoning with minimal supervision.
 Prior work has tested tool-based language models in non-interactive settings.
 We study the use of tool-based language models in grounded dialogue,
 where language models must utilize tools in context.
-In order to deal with the primary challenge of dialogue state tracking,
+In order to deal with the challenge of dialogue state tracking,
 we build a modular dialogue system that represents dialogue state as executable code.
 Maintaining dialogue state explicitly as interpretable code allows
 language models to break down complex reasoning into a simple step-by-step process.
@@ -121,10 +121,29 @@ selfplay, and human play.
 
 
 \section{Introduction}
+Topic sentence: Large language models have shortcomings, in particular grounding.
+Recent work has shown that tool use can adapt ungrounded language models
+to grounded tasks with minimal supervision.
+Describe code as policies, vipergpt, chatgpt plugins,
+which bake in task-specific biases.
 
+Topic sentence: Tool-use has mostly been demonstrated in the single-turn setting,
+other than the commercial success of ChatGPT.
+The challenge of grounded dialogue is dialogue state tracking and reasoning while
+grounding conversation.
+
+Topic sentence: We explore ways methods for applying LLMs to solving grounded tasks.
+Method overview: read, plan, write.
+Cast reading as code generation.
+
+Topic sentence: We focus on \textsc{OneCommon}, a challenging grounded dialogue task.
+Description of what's hard about \textsc{OneCommon}.
+Also argue that in dialogue, data collection might be even harder.
+Results.
 
 \begin{figure}[t]
 \setlength{\abovecaptionskip}{0pt}
+grounding
 
 \centering
 
@@ -186,88 +205,17 @@ This dialogue ends in failure, as the agent and partner did not account for pers
 \label{fig:oc}
 \end{figure}
 
-Figure \ref{fig:oc} provides an example from \textsc{OneCommon},
-a collaborative reference game with a high degree of
-perspective-dependent ambiguity \citep{onecommon}.
-An agent and partner are given different but overlapping views of a game board
-and must jointly identify a shared dot through dialogue.
-Perspective dependent ambiguity stems from the different but overlapping views, and the degree of ambiguity depends on the number of overlapping dots.
-In this example, the agent's description (\emph{one large black dot}) is specific in their view,
-but actually resolves to a different dot in their partner's view --- unknown to both the agent and partner.
-The incorrect resolution and confirmation have an immediate irrevocable consequence:
-The agent and partner select different dots, failing the game.
-
-This false positive confirmation results from an \textit{egocentric} heuristic \citep{keysar}.
-Agents utilizing an egocentric heuristic resolve
-referring expressions based mainly on their own perspective,
-failing to account for the fact that 
-the perspectives have partial overlap
-and there are unshared items which
-cannot be observed by the agent.
-While cognitively cheap, the egocentric heuristic can lead to systemic errors.
-Such errors are more pronounced with larger differences in perspectives,
-resulting in larger degrees of perspective-dependent ambiguity.
-Errors of this form can result in irrevocable mistakes
-that do not get corrected in follow-up interactions \citep{keysar}.
-
-In this work, we incorporate the partner's perspective into a collaborative dialogue system.
-Our approach centers on a partner model that predicts the partner's response given a question from the agent and the partner's unobserved perspective, modeled as a latent variable.
-The partner model reasons explicitly over shared and unshared
-aspects of the partner perspective, marginalizing over
-the unshared aspects.
-The agent uses the partner model to plan symbolically, asking maximally informative questions by maximizing the expected information gain with respect to the latent partner perspective.
-After observing the partner's response to the utterance, the agent uses the partner model to conservatively update its belief over shared perspective.
-
-Experiments show that planning through the partner model outperforms a state-of-the-art fully supervised dialogue agent \citep{fried}.
-The supervised approach chooses plans based on an egocentric heuristic, and is limited by the strategies demonstrated in its training data.
-When applied to \textsc{OneCommon}, our approach utilizes richer plans than those demonstrated by humans and achieves a symbolic\footnote{
-Symbolic selfplay for \textsc{OneCommon} allows agents to
-directly communicate the symbolic representation of plans
-instead of describing them in natural language.
-} selfplay success rate of 85.2\%,
-a large improvement over the prior state-of-the-art language selfplay success rate of 62.4\% \citep{fried}.
-
 
 \section{Related work}
-%\href{https://docs.google.com/spreadsheets/d/1msziHHiGaPg1lAOobA_uC_5RUKWTqP3b3kt3rUlBuGY/edit#gid=558997544}{spreadsheet}.
-%\textbf{perspective and common ground}
-\paragraph{Perspective in common ground} The study of perspective and its influence on \textit{common ground}, the shared knowledge between dialogue agents, has its roots in 
-pragmatics and linguistics \citep{stalnaker1970,clark1981,clark1983}.
- Behavioural experiments studying the egocentric heuristic found that
-it can lead to irrevocable errors in human studies \citep{keysar}.
-% follow up work found the egocentric heuristic is used lazily, eg when there are errors people switch over.
-Computational work by \citet{perspective_reg} and \citet{dogan}
-utilize perspective to generate and understand referring expressions in a fully shared environment, but from different locations. In contrast to these works, where the perspective of the partner is known and conditioned on, in our setting the partner perspective is inferred and the environment is partially shared between partners.
 
-Perspective captures more than just spatial properties. Partner capability was considered in the context of reference games \citep{corona}, 
-where partner capabilities such as color-blindness were inferred in a single-turn visual reference game.
-%While he perspectives of others are unobserved but not directly modeled.
-%Instead, agent policies were trained end-to-end with policy gradient methods.
-While their approach did not model partner perspectives,
-we propose to directly model the partner perspectives as a latent variable.
+\paragraph{Tool-based language models}
+Code-as-policies, ViperGPT, PAL, toolformer, VisProg.
+Difference: 
 
-% Our work is inspired by these linguistic theories and experiments,
-% and also provides a computational model for dealing with differences in perspectives in the dialogue setting.
-% We demonstrate that mistakes due to perspective-dependent ambiguity in a dialogue setting with unobserved partner perspective can be reduced with an explicit latent-variable model of the partner.
-% \daniel{maybe move this to after the first para}
+\paragraph{Conversational tool-based language models}
+VisualChatGPT, chatgpt with plugins.
+Difference: 
 
-%\textbf{20 qs}
-\paragraph{Informative question generation}
-
-Work in question generation formulates information-seeking conversation as a 
-partially observable Markov decision process.
-There is one information seeker and one information holder.
-Methods use a single-turn partner-model heuristic to generate questions
-\citep{rao2018q,yu2019info}.
-% The information holder has a target referent in mind, which they must convey
-% to the information seeker.
-In this setting, the unobserved target referent is the only source of partial observability,
-meaning that information exchanged is reliable up to errors in language.
-In contrast, the different perspectives in \textsc{OneCommon} and resulting
-perspective-dependent ambiguity have a large effect on communication,
-often turning unambiguous utterances in the agent's perspective into ambiguous ones for the partner.
-
-%\textbf{Dialogue games and partner modeling}
 \paragraph{Task-oriented dialogue}
 Task-oriented dialogue often uses multi-turn model-based planning.
 Here planning is performed in the space of language via rollouts or tree-search
@@ -275,144 +223,243 @@ Here planning is performed in the space of language via rollouts or tree-search
 %Our work reduces perspective-dependent ambiguity by incorporating a distribution over unobserved context into the partner model.
 While we use a single-turn planning heuristic,
 our focus on improving partner models is complementary to multi-turn planning and can be combined in future work.
-%\justin{include all the onecommon papers and related games}
-%\daniel{might be worth thinking about the audience -- will they know model-based planning? from the PC list I saw, I'd guess yes}
 
-\paragraph{Reference generation}
-There is a long line of work on referring expression generation \cite[][\emph{inter alia}]{heeman-hirst-1995-collaborating,dale1995,jordan2005contentselection,krahmer-van-deemter-2012-computational,takmaz-etal-2020-refer}, particularly in grounded settings \cite[][\emph{inter alia}]{dale-viethen-2009-referring,mao2016generation,yu2017joint,takmaz-etal-2020-refer}.
-The OneCommon~\citep{onecommon} dialogue setting poses challenges for generation due to its partial observability and the non-identical views of its participants.
-Our method is most closely related to the  state-of-the-art approach to \textsc{OneCommon} \citep{fried} which forms the backbone of our method. We focus on relaxing the egocentric assumptions of this method by incorporating symbolic information-seeking planning and generation. 
 
-% interpretation \cite{schlangen2009incremental,liu2013modeling,kennington-schlangen-2015-simple}
-% or both \cite{mao2016generation,yu2017joint}.
-% Our objective also models the tradeoff, explored in past work on referring expression generation \cite{}, between producing utterances relevant in the discourse and world context and producing utterances that are discriminative.
-% Closest to ours is the work of \citet{takmaz-etal-2020-refer}, which builds models for reference interpretation and generation in the rich PhotoBook corpus \cite{haber2019photobook}, focusing on a non-interactive setting with static evaluation on reference chains extracted from human-human dialogues.
-% \red{
+\section{Grounded dialogue with tool-based language models}
+We decompose dialogue into a sequence of three steps: reading, planning, and writing.
 
+\subsection{Reading}
+Language to python translation with execution.
+
+\subsection{Planning}
+Ask a new question, a follow-up question, or select.
+
+\subsection{Writing}
+Realize the plan into language.
+
+\section{Experimental setup}
+\label{sec:exp}
+We evaluate our method, the Partner Planner, on the \textsc{OneCommon} dataset \citep{onecommon}.
+We perform two evaluations:
+First, we evaluate the number of incorrectly resolved plans generated by the Partner Planner given a static, natural language dataset.
+Second, we evaluate the Partner Planner in dynamic, symbolic selfplay.
+
+
+\textbf{Static plan evaluation}
+In order to show that resolving perspective-dependent
+ambiguity reduces errors,
+we perform automatic evaluation of plans by evaluating whether the agent plan is incorrectly resolved by the partner model.
+A plan is incorrectly resolved if the plan is not empty and the partner does not resolve the plan to any
+of the agent's intended referents.
+We evaluate this without language by directly feeding the feature
+representation of plans from the agent to the partner, who is a Partner Planner.
+
+We generate plans given natural language dialogue history from a validation split of \textsc{OneCommon} following prior work \citep{fried}.\footnote{
+Prior work used 10-fold cross-validation.
+We use models from prior work trained on one fold, and evaluate our approach
+on the validation set for that fold.
+In particular, we use fold 1 from prior work.
+}
+For each turn in the human-generated dialogue, we generate a plan from our model
+and label that plan as either a success or failure using the procedure above.
+We evaluate on 518 validation games, which have different numbers of shared dots: either 4, 5, or 6.
+Fewer shared dots results in more perspective-dependent ambiguity.
+
+\textbf{Symbolic selfplay}
+We also evaluate the Partner Planner on symbolic selfplay,
+where it plays the full \textsc{OneCommon} game with a copy of itself using symbolic communication.
+We evaluate only on the setting with the most perspective-dependent ambiguity, 4 shared dots.
+In symbolic selfplay, agents must perform planning, belief updates, and selection.
+The Partner Planner is able to exactly communicate confirmations and dot features (bucketed size, color, and relative positions).
+We compare the game success rate of the Partner Planner to success rate of the baseline by \cite{fried} and human performance on language selfplay.
+Language inherently has more noise than symbolic representations,
+meaning symbolic selfplay is an upper bound on performance with language.
+
+\textbf{Systems}
+We focus evaluation on the Partner Planner,
+which reasons about shared and unshared dots.
+We consider an ablated version, which does not model unshared dots.
+
+As a baseline, we compare to an agent from prior work, which does not account for
+perspective-dependent ambiguity \citep{fried}.
+The baseline model chooses plans based on the round-trip probability from an utterance back to the plan,
+which is an egocentric heuristic and also does not account for
+uncertainty over shared dots.
+The baseline agent chooses 8 plans and 64 utterances for each plan, then chooses the
+plan and utterance pair with the highest probability of recovering the plan give
+the utterance using a reference resolution model applied only to the agent's own context.
+
+%As a final experiment, we evaluate the Partner Planner when partnered with a human partner on \textsc{OneCommon}, where the interaction takes place using natural language. We conduct XYZ dialogues on Amazon's Mechanical Turk (AMT) by pairing humans with one of 3 systems: Partner Planner, \citet{fried}, and another human. \justin{num trials, payment}
+
+\textbf{Hyperparameters}
+For the Partner Planner, we set the response faithfulness probability $\theta = 0.95$.
+We determine the selection entropy threshold by running grid search over $\tau \in \set{1,1.5,2}$ on symbolic selfplay, and pick the value with the highest success rate.
+
+The partner response classifier is a RoBERTa model \citep{roberta}, with a second stage of fine-tuning performed on 147 annotated dialogue turns.
+We annotate the text each turn as a confirmation, denial, or no response.
+The model is originally fine-tuned on sentiment \citep{heitmann2020}.
+
+For mention classification from text, we use a mention prediction network from past work \citep{fried}.
+The mention prediction network explicitly models relationships between mentions using a conditional random field with neural potentials.
+
+\begin{table}[!t]
+\centering
+\begin{tabular}{lrrrr}
+\toprule
+%\multirow{2}{*}{Model}& \multicolumn{3}{c}{Overlap size} &\multirow{2}{*}{Total}\\
+& \multicolumn{3}{c}{\# shared} &\\
+\cmidrule{2-4}
+%                                 & 4   & 5   & 6   &\\
+Agent                   & 4  & 5  & 6  & Total\\
+\midrule
+Partner Planner         & 26 & 12 & 5  & 43  (12)\\
+\quad -unshared         & 70 & 61 & 22 & 153 (22)\\
+\citet{fried}           & 28 & 17 & 4  & 49  (17)\\
+\bottomrule
+\end{tabular}
+\caption{\label{tbl:static-plans}
+The number of incorrectly resolved plans in
+automatic feature-based evaluation on 519 static validation dialogues
+(2,341 turns).
+The total number of errors made in the first turn of a dialogue is shown in parentheses for each agent.
+A lower number of incorrect plans is better.
+}
+\end{table}
+
+\section{Results}
+\textbf{Static plan evaluation}
+Directly modeling and marginalizing over unobserved partner perspective results in fewer
+errors than the egocentric heuristic from \citet{fried}, obtaining a 12\% reduction in errors as shown in Table \ref{tbl:static-plans}.
+Additionally, the number of incorrectly resolved plans from Planner is much lower than an ablated planner that does not model unshared dots, a 72\% reduction.
+
+We hypothesize that the baseline model of \citet{fried} makes fewer errors because it is able to repeat plans mentioned in the static dialogue.
+The Partner Planner does not often repeat plans, as there is little information gained.
+When restricted to the plan proposals from the first turn of a static human-demonstrated dialogue, where no plans can be copied, the Partner Planner outperforms the baseline by a larger margin, as shown in Table \ref{tbl:static-plans}.
+
+We note that the absolute number of resolution errors is small relative to the total number of turns.
+We hypothesize that this is because of the nature of static evaluation.
+Static evaluation considers next step plan proposals given human dialogue,
+preventing agents from steering the dialogue themselves.
+
+\begin{table}[!t]
+\centering
+\begin{tabular}{lrr}
+\toprule
+Agent                   & Success & Avg \# turns\\
+\midrule
+Partner Planner         & 85.2\%  & 10.10\\
+\quad -unshared         & 77.0\%  & 11.69\\
+\citet{fried}           & 62.4\%  & -\\
+Human                   & 65.8\%  & 4.97\\
+\bottomrule
+\end{tabular}
+\caption{\label{tbl:selfplay}
+The success rate of different agents in selfplay on the hardest setting of \textsc{OneCommon}, with 4 shared dots.
+The Partner Planner and ablated version communicate symbolically,
+while the \citet{fried} baseline and human
+performance use language.
+A higher success rate is better.
+The human performance is from the \textsc{OneCommon} dataset
+\citep{onecommon}.
+}
+\end{table}
+
+\textbf{Symbolic selfplay}
+The Partner Planner achieves strong performance in symbolic selfplay, as shown in Table \ref{tbl:selfplay}.
+The ablated version, which does not model unshared dots, also performs well, but worse than the full Partner Planner.
+This demonstrates the utility of modeling unshared perspective.
+
+Both the full and ablated Partner Planner outperform the baseline of \citet{fried} and coached human performance from the training data of \citet{onecommon}, demonstrating the utility of partner modeling.
+Much of this success comes from the ability to control the
+belief entropy selection heuristic, as shown by the performance of the ablated Partner Planner over human performance.
+The selection heuristic encourages the Partner Planner to be more patient and gather more information before selecting than most human participants,
+reflected in the average number of turns per game.
+% plot of success rate vs number of turns
+
+
+%\textbf{Human evaluation}
+%TBD
 
 \begin{comment}
-\begin{figure}
+\begin{table}[!t]
 \centering
-
-\scalebox{1.1}{
-\begin{tikzpicture}
-
-%\filldraw[gray!40] (0,0) circle (.3em);
-%\filldraw[gray!100] (.25,0) circle (.38em);
-%\filldraw[gray!160] (.5,0) circle (.45em);
-
-\filldraw[gray!160] (-.2,.6) circle (.45em); % 76
-\filldraw[gray!40] (-.7,-.3) circle (.4em); % 51
-\filldraw[gray!40] (.4,.1) circle (.3em); % 52
-\filldraw[gray!100] (.8,-.1) circle (.3em); % 66
-
-% left
-\filldraw[gray!140] (-1.3,-1.2) circle (.3em); % 13
-\filldraw[gray!100] (-1.6,-1.8) circle (.3em); % 14
-\filldraw[gray!110] (-.2,-1.1) circle (.4em); % 74
-
-% right
-\filldraw[gray!100] (-1,1.5) circle (.3em); % 28
-\filldraw[gray!100] (-.5,1.6) circle (.38em); % 69
-\filldraw[gray!160] (.8,1.8) circle (.45em); % 26
-
-% agent plans 76
-\node[
-    draw,circle,dashed,blue,thick, minimum size=1.2em,
-    label= left:$x$
-] (x) at (-.2,.6) {};
-% m label
-% \filldraw[gray!40] (.4,.5) circle (.3em); % 52
-%\node[
-%    draw,circle,dashed,red,thick, minimum size=.6em,
-%    label=left:$m$
-%] (m) at (.4,.1) {};
-
-\draw[dashed,blue,thick] (-.3,-.7) circle (5em);
-\draw[dashed,red,thick] (.2,1) circle (5em);
-
-% s label
-\draw[draw=black] (-1,-.6) rectangle (1.1,1);
-%\node (s) at (-.8,1) {$s$};
-\node (s) at (-1.2,0.2) {$s$};
-% u label
-\draw[draw=black] (-1.2,1.3) rectangle (1.1,2.1);
-%\node (u) at (-1.05,1.95) {$u$};
-\node (u) at (-1.4, 1.7) {$u$};
-% z label
-\node (z) at (-2.7,1) {$z$};
-% d label
-\node (d) at (-2.7,-.7) {$\mcD$};
- 
-%\node (xe) at (-3.23,-3) {$x=$};
-%\filldraw[gray!40] (-2.5,-3) circle (.3em); % 52
-%\filldraw[gray!160] (-2.5,-3) circle (.45em); % 76
-%\draw[dashed,blue,thick] (-2.5,-3) circle (.6em);
-
- 
-%\node (v) at (-.3, -3.6) {$w=$ Yes, is there a small grey one as well?};
-%\node (c) at (-2.9,-4.2) {$c=$ Yes};
-%\node (m) at (0,-4.2) {$m=$};
-%\filldraw[gray!40] (.7,-4.2) circle (.3em); % 52
-%\draw[dashed,red,thick] (.7,-4.2) circle (.5em);
-\end{tikzpicture}
+\begin{tabular}{lrr}
+\toprule
+%                                 & 4   & 5   & 6   &\\
+Agent               & $N$ & Success\\
+\midrule
+Partner Planner     &  A  & X\%  \\
+\citet{fried}       &  B  & Y\% \\
+Human               &  C  & Z\% \\
+\bottomrule
+\end{tabular}
+\caption{\label{tbl:human}
+The success rate of different agents in human evaluation on the hardest setting of \textsc{OneCommon}, with 4 shared dots.
+All agents communicate with a human partner via natural language.
+Each agent type plays $N$ games with a human partner.
+A higher success rate is better.
 }
-\caption{The agent perspective $\mcD$ (blue circle) and partner perspective $z$ (red circle) in \textsc{OneCommon}.
-The symbolic agent plan $x$ consists of a single dot,
-but can be any subset of dots in the $\mcD$.
-}
-\label{fig:xz}
-\end{figure}
+\end{table}
 \end{comment}
+
+\section{Future Work}
+%\textbf{Incorporate language, discuss fidelity and OOD-ness for generation/resolution}
+%\textbf{Extension to \textsc{MutualFriends}}
+For future work, the current model will be extended with text generation in order to play \textsc{OneCommon} with humans.
+Preliminary experiments using utterance generation methods from prior work by \citet{fried} found that the plans proposed by the Partner Planner were out-of-distribution for supervised methods, resulting in many errors in generation.
+Further experiments with a templated generation system found that the resulting templates were too difficult to understand for human partners.
+Future work will experiment with generation systems that account for utterance processing cost, balancing the amount of information conveyed and fluency.
+
+Additionally, the scalability of the method will be tested on dialogue games with larger environments.
+
+%\section{Conclusion}
+%TBD
+
+\section*{Acknowledgements}
+Ge Gao, Jack Morris, Nicholas Tomlin, Woojeong Kim, Celine Lee, Alane Suhr.
+
+\begin{comment}
+\section*{Limitations}
+There is a tradeoff between expressivity and  controllability for dialogue partner modeling.
+In this work, we emphasize controllability by explicitly modeling certain aspects of the partner perspective while not accounting for others, resulting in biased agents.
+The failure to account for
+particular partner aspects may affect fairness and equity with a diverse pool of partners.
+\end{comment}
+%\section*{Ethics Statement}
+
+% Entries for the entire Anthology, followed by custom entries
+\bibliography{anthology,custom}
+\bibliographystyle{acl_natbib}
+
+\appendix
+
+%\section{Templated generation}
+%\label{sec:generation}
+%TBD
+
 
 \section{Partner Modeling in Reference Games}
 \label{sec:planning}
-%\justin{bad transition}
 
 Collaborative reference games pair an agent and a partner in order to agree on a shared object through natural language dialogue.
 At each turn, the agent or partner may decide to terminate the game and make a selection.
 Once either the agent or their partner terminates, the other player must also act (without observing the other's choice). If both agent and partner agree, both win; otherwise, both fail. 
-% Along with many communication challenges, these games force partners to navigate ambiguities arising from differing perspectives.
-% \daniel{maybe a reminder about why this is challenging}
 
 Our approach to reference games separates planning of utterances (choosing what to talk about) from surface realization (choosing how to say it).
 At each turn, our agent produces an utterance plan $x$ by using a \emph{partner model}, which simulates the partner's possible responses, $y$, given their hidden perspective, $z$.
-% The partner model jointly models the partner response and perspective given the agent plan.
 The agent uses the partner model to infer the partner's perspective and predict the partner's responses to the agent's plans.
-% The agent uses this partner model to both find effective plans
-% and update its belief over the partner perspective given a partner response.
 We first give an overview of the partner model 
 and planning procedure in this section.
-% with details of its application to \textsc{OneCommon} in Section \ref{sec:plan-oc}.
 
-%\textbf{perspective-dependent ambiguity causes failures}
-\begin{comment}
-\justin{Sample size is too small: remove.}
-Previous computational approaches to \textsc{Onecommon}
-do not take into account perspective-dependent ambiguity.
-We attribute a large percentage of game failures
-in a state-of-the-art approach \citep{fried} to \textsc{OneCommon} to perspective-dependent ambiguity, based on an analysis we perform of a sample of their system outputs.
-In our analysis, we find that 25\% of games between humans and the model of \citet{fried} fail due to perspective-dependent ambiguity
-(out of a random sample of 20 games from the 200 human-agent evaluation games in this work).
-We hypothesize that we can improve task success by explicitly modeling the partner's perspective, reducing partner-dependent ambiguity.%
-% This is a result of the previous approach's decision to utilize the egocentric heuristic.
-\footnote{
-Perspective-ambiguity does not account for all failures.
-Other causes for failure include a lack of attention from the human partner or misinterpretation of language.
-}
-\end{comment}
 % restate goal and contribution
 \noindent \textbf{Partner model}
 We model the partner's perspective as a latent variable, infer the value for this variable over the course of a game, and use it to plan generation.
-%This encourages the agent to avoid miscommunication by simulating how the partner would respond given different possible perspectives.
-%\daniel{this is a bit redundant with the text at the beginning of the section, which is fine but one of the two could be shortened for space}
 This contrasts with a typical egocentric heuristic, as used in \citet{fried}, which assumes the partner's perspective
 is identical to the agent's.
 
 The partner model predicts a distribution over the partner response $y$ given the agent plan $x$ under the latent shared perspective $z$, and decomposes as:
 $$p(y \mid x) = \sum_z p(y \mid x,z)p(z).$$
-%\daniel{define $x$, either here or (preferably) in the previous section - at least say it's a symbolic representation that a dialogue generation model could then use, and something about what it represents -- eg the objects to mention and their attributes. You could say that we factor content selection from surface realization, and x is the selected content?}
-% \daniel{is the partner model $p(y,z\mid x)$ or $p(y \mid x,z)$?}
+
 
 % planning
 \noindent  \textbf{Planning}
@@ -702,205 +749,6 @@ highest marginal probability of being shared,
 as well as the dot within that configuration that is most likely to be shared.
 The agent then selects the described dot.
 
-\section{Experimental setup}
-\label{sec:exp}
-We evaluate our method, the Partner Planner, on the \textsc{OneCommon} dataset \citep{onecommon}.
-We perform two evaluations:
-First, we evaluate the number of incorrectly resolved plans generated by the Partner Planner given a static, natural language dataset.
-Second, we evaluate the Partner Planner in dynamic, symbolic selfplay.
-
-
-\textbf{Static plan evaluation}
-In order to show that resolving perspective-dependent
-ambiguity reduces errors,
-we perform automatic evaluation of plans by evaluating whether the agent plan is incorrectly resolved by the partner model.
-A plan is incorrectly resolved if the plan is not empty and the partner does not resolve the plan to any
-of the agent's intended referents.
-We evaluate this without language by directly feeding the feature
-representation of plans from the agent to the partner, who is a Partner Planner.
-
-We generate plans given natural language dialogue history from a validation split of \textsc{OneCommon} following prior work \citep{fried}.\footnote{
-Prior work used 10-fold cross-validation.
-We use models from prior work trained on one fold, and evaluate our approach
-on the validation set for that fold.
-In particular, we use fold 1 from prior work.
-}
-For each turn in the human-generated dialogue, we generate a plan from our model
-and label that plan as either a success or failure using the procedure above.
-We evaluate on 518 validation games, which have different numbers of shared dots: either 4, 5, or 6.
-Fewer shared dots results in more perspective-dependent ambiguity.
-
-\textbf{Symbolic selfplay}
-We also evaluate the Partner Planner on symbolic selfplay,
-where it plays the full \textsc{OneCommon} game with a copy of itself using symbolic communication.
-We evaluate only on the setting with the most perspective-dependent ambiguity, 4 shared dots.
-In symbolic selfplay, agents must perform planning, belief updates, and selection.
-The Partner Planner is able to exactly communicate confirmations and dot features (bucketed size, color, and relative positions).
-We compare the game success rate of the Partner Planner to success rate of the baseline by \cite{fried} and human performance on language selfplay.
-Language inherently has more noise than symbolic representations,
-meaning symbolic selfplay is an upper bound on performance with language.
-
-\textbf{Systems}
-We focus evaluation on the Partner Planner,
-which reasons about shared and unshared dots.
-We consider an ablated version, which does not model unshared dots.
-
-As a baseline, we compare to an agent from prior work, which does not account for
-perspective-dependent ambiguity \citep{fried}.
-The baseline model chooses plans based on the round-trip probability from an utterance back to the plan,
-which is an egocentric heuristic and also does not account for
-uncertainty over shared dots.
-The baseline agent chooses 8 plans and 64 utterances for each plan, then chooses the
-plan and utterance pair with the highest probability of recovering the plan give
-the utterance using a reference resolution model applied only to the agent's own context.
-
-%As a final experiment, we evaluate the Partner Planner when partnered with a human partner on \textsc{OneCommon}, where the interaction takes place using natural language. We conduct XYZ dialogues on Amazon's Mechanical Turk (AMT) by pairing humans with one of 3 systems: Partner Planner, \citet{fried}, and another human. \justin{num trials, payment}
-
-\textbf{Hyperparameters}
-For the Partner Planner, we set the response faithfulness probability $\theta = 0.95$.
-We determine the selection entropy threshold by running grid search over $\tau \in \set{1,1.5,2}$ on symbolic selfplay, and pick the value with the highest success rate.
-
-The partner response classifier is a RoBERTa model \citep{roberta}, with a second stage of fine-tuning performed on 147 annotated dialogue turns.
-We annotate the text each turn as a confirmation, denial, or no response.
-The model is originally fine-tuned on sentiment \citep{heitmann2020}.
-
-For mention classification from text, we use a mention prediction network from past work \citep{fried}.
-The mention prediction network explicitly models relationships between mentions using a conditional random field with neural potentials.
-
-\begin{table}[!t]
-\centering
-\begin{tabular}{lrrrr}
-\toprule
-%\multirow{2}{*}{Model}& \multicolumn{3}{c}{Overlap size} &\multirow{2}{*}{Total}\\
-& \multicolumn{3}{c}{\# shared} &\\
-\cmidrule{2-4}
-%                                 & 4   & 5   & 6   &\\
-Agent                   & 4  & 5  & 6  & Total\\
-\midrule
-Partner Planner         & 26 & 12 & 5  & 43  (12)\\
-\quad -unshared         & 70 & 61 & 22 & 153 (22)\\
-\citet{fried}           & 28 & 17 & 4  & 49  (17)\\
-\bottomrule
-\end{tabular}
-\caption{\label{tbl:static-plans}
-The number of incorrectly resolved plans in
-automatic feature-based evaluation on 519 static validation dialogues
-(2,341 turns).
-The total number of errors made in the first turn of a dialogue is shown in parentheses for each agent.
-A lower number of incorrect plans is better.
-}
-\end{table}
-
-\section{Results}
-\textbf{Static plan evaluation}
-Directly modeling and marginalizing over unobserved partner perspective results in fewer
-errors than the egocentric heuristic from \citet{fried}, obtaining a 12\% reduction in errors as shown in Table \ref{tbl:static-plans}.
-Additionally, the number of incorrectly resolved plans from Planner is much lower than an ablated planner that does not model unshared dots, a 72\% reduction.
-
-We hypothesize that the baseline model of \citet{fried} makes fewer errors because it is able to repeat plans mentioned in the static dialogue.
-The Partner Planner does not often repeat plans, as there is little information gained.
-When restricted to the plan proposals from the first turn of a static human-demonstrated dialogue, where no plans can be copied, the Partner Planner outperforms the baseline by a larger margin, as shown in Table \ref{tbl:static-plans}.
-
-We note that the absolute number of resolution errors is small relative to the total number of turns.
-We hypothesize that this is because of the nature of static evaluation.
-Static evaluation considers next step plan proposals given human dialogue,
-preventing agents from steering the dialogue themselves.
-
-\begin{table}[!t]
-\centering
-\begin{tabular}{lrr}
-\toprule
-Agent                   & Success & Avg \# turns\\
-\midrule
-Partner Planner         & 85.2\%  & 10.10\\
-\quad -unshared         & 77.0\%  & 11.69\\
-\citet{fried}           & 62.4\%  & -\\
-Human                   & 65.8\%  & 4.97\\
-\bottomrule
-\end{tabular}
-\caption{\label{tbl:selfplay}
-The success rate of different agents in selfplay on the hardest setting of \textsc{OneCommon}, with 4 shared dots.
-The Partner Planner and ablated version communicate symbolically,
-while the \citet{fried} baseline and human
-performance use language.
-A higher success rate is better.
-The human performance is from the \textsc{OneCommon} dataset
-\citep{onecommon}.
-}
-\end{table}
-
-\textbf{Symbolic selfplay}
-The Partner Planner achieves strong performance in symbolic selfplay, as shown in Table \ref{tbl:selfplay}.
-The ablated version, which does not model unshared dots, also performs well, but worse than the full Partner Planner.
-This demonstrates the utility of modeling unshared perspective.
-
-Both the full and ablated Partner Planner outperform the baseline of \citet{fried} and coached human performance from the training data of \citet{onecommon}, demonstrating the utility of partner modeling.
-Much of this success comes from the ability to control the
-belief entropy selection heuristic, as shown by the performance of the ablated Partner Planner over human performance.
-The selection heuristic encourages the Partner Planner to be more patient and gather more information before selecting than most human participants,
-reflected in the average number of turns per game.
-% plot of success rate vs number of turns
-
-
-%\textbf{Human evaluation}
-%TBD
-
-\begin{comment}
-\begin{table}[!t]
-\centering
-\begin{tabular}{lrr}
-\toprule
-%                                 & 4   & 5   & 6   &\\
-Agent               & $N$ & Success\\
-\midrule
-Partner Planner     &  A  & X\%  \\
-\citet{fried}       &  B  & Y\% \\
-Human               &  C  & Z\% \\
-\bottomrule
-\end{tabular}
-\caption{\label{tbl:human}
-The success rate of different agents in human evaluation on the hardest setting of \textsc{OneCommon}, with 4 shared dots.
-All agents communicate with a human partner via natural language.
-Each agent type plays $N$ games with a human partner.
-A higher success rate is better.
-}
-\end{table}
-\end{comment}
-
-\section{Future Work}
-%\textbf{Incorporate language, discuss fidelity and OOD-ness for generation/resolution}
-%\textbf{Extension to \textsc{MutualFriends}}
-For future work, the current model will be extended with text generation in order to play \textsc{OneCommon} with humans.
-Preliminary experiments using utterance generation methods from prior work by \citet{fried} found that the plans proposed by the Partner Planner were out-of-distribution for supervised methods, resulting in many errors in generation.
-Further experiments with a templated generation system found that the resulting templates were too difficult to understand for human partners.
-Future work will experiment with generation systems that account for utterance processing cost, balancing the amount of information conveyed and fluency.
-
-Additionally, the scalability of the method will be tested on dialogue games with larger environments.
-
-%\section{Conclusion}
-%TBD
-
-\section*{Acknowledgements}
-Ge Gao, Jack Morris, Nicholas Tomlin, Woojeong Kim, Celine Lee, Alane Suhr.
-
-\begin{comment}
-\section*{Limitations}
-There is a tradeoff between expressivity and  controllability for dialogue partner modeling.
-In this work, we emphasize controllability by explicitly modeling certain aspects of the partner perspective while not accounting for others, resulting in biased agents.
-The failure to account for
-particular partner aspects may affect fairness and equity with a diverse pool of partners.
-\end{comment}
-%\section*{Ethics Statement}
-
-% Entries for the entire Anthology, followed by custom entries
-\bibliography{anthology,custom}
-\bibliographystyle{acl_natbib}
-
-\appendix
-
-%\section{Templated generation}
-%\label{sec:generation}
-%TBD
 
 \section{Feature-based resolution}
 \label{sec:feature-resolution}

@@ -104,11 +104,12 @@ We study the use of tool-based language models in grounded dialogue.
 Out-of-domain generalization is particularly challenging in grounded dialogue,
 where language models may easily be exposed to unexpected forms of grounding.
 We build a modular dialogue system that allows language models to do what they do best:
-understand language, while deferring other tasks to more suitable components.
-Our system represents dialogue state as executable code,
-using language models to manipulate the state code in response to partner utterances,
+understand language, while deferring other tasks, such as grounding and dialogue state tracking,
+to more suitable components.
+Our system uses language models to generate code in response to partner utterances,
 a symbolic planner to decide what to say next,
 and a rule-based templated generator to realize symbolic plans into text.
+The generated code is used to both manipulate dialogue state, represented as code, as well as perform grounding.
 We evaluate our system on a challenging dialogue task, \textsc{OneCommon},
 where partners ground discussion on abstract images of scattered dots.
 Humans attain a success rate of 65.8\% in the most challenging setting of \textsc{OneCommon}.

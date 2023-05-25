@@ -50,7 +50,9 @@
 %
 % and set <dim> to something 5cm or larger.
 
-\title{Tool-based Language Models for Grounded Dialogue}
+\title{
+Integrating Language Models and Symbolic Planning for Grounded Dialogue
+}
 
 % Author information can be set in various styles:
 % For several authors from the same institution:
@@ -94,29 +96,15 @@ Carnegie Mellon University \\
 \maketitle
 \begin{abstract}
 %Two main points:
-%1. Low-resource / minimal supervision.
+%1. Integrate language models and symbolic planning
+%1. Language models allow us to handle linguistic variation
 %2. Code for step-by-step reasoning.
-
-%Large language models, when given access to tools such as a code interpreters and computer vision models,
-%are able to perform grounded reasoning with minimal supervision.
-%Prior work has tested tool-based language models in non-interactive settings.
-We study the use of tool-based language models in grounded dialogue.
-Out-of-domain generalization is particularly challenging in grounded dialogue,
-where language models may easily be exposed to unexpected forms of grounding.
-We build a modular dialogue system that allows language models to do what they do best:
-understand language, while deferring other tasks, such as grounding and dialogue state tracking,
-to more suitable components.
-Our system uses language models to generate code in response to partner utterances,
-a symbolic planner to decide what to say next,
-and a rule-based templated generator to realize symbolic plans into text.
-The generated code is used to both manipulate dialogue state, represented as code, as well as perform grounding.
-We evaluate our system on a challenging dialogue task, \textsc{OneCommon},
-where partners ground discussion on abstract images of scattered dots.
-Humans attain a success rate of 65.8\% in the most challenging setting of \textsc{OneCommon}.
-Our system achieves strong results in language understanding,
-selfplay, and human play.
+Large language models excel at understanding and generating text and code; however, they face limitations in adhering to task-specific constraints and handling novel grounding.
+These limitations are exacerbated in grounded task-oriented dialogue.
+To address these shortcomings in grounded task-oriented dialogue, we present a modular dialogue system that tackles these challenges.
+We utilize a classical decomposition of the dialogue system into a reader, planner, and writer.
+Our system leverages language models to convert partner utterances into executable code, incorporating grounding libraries. The translated code is executed to track dialogue state, while a symbolic planner determines the next appropriate response. We evaluate our system's performance on the demanding \textsc{OneCommon} dialogue task, which involves grounding discussions on abstract images of scattered dots. In this challenging setting, human success rate is 65.8\%. Our system demonstrates significant advancements in language understanding, as evidenced by strong results in human play, selfplay, and overall performance.
 \end{abstract}
-
 
 \section{Introduction}
 Topic sentence: Large language models have shortcomings, in particular grounding.
@@ -124,7 +112,7 @@ Recent work has shown that tool use can adapt ungrounded language models
 to grounded tasks with minimal supervision.
 Describe code as policies, vipergpt, chatgpt plugins,
 which bake in task-specific biases.
-
+im 
 Topic sentence: Tool-use has mostly been demonstrated in the single-turn setting,
 other than the commercial success of ChatGPT.
 The challenge of grounded dialogue is dialogue state tracking and reasoning while
@@ -329,6 +317,12 @@ A lower number of incorrect plans is better.
 \end{table}
 
 \section{Results}
+\textbf{Human eval}
+
+\textbf{Selfplay}
+
+\textbf{Static reference resolution}
+
 \textbf{Static plan evaluation}
 Directly modeling and marginalizing over unobserved partner perspective results in fewer
 errors than the egocentric heuristic from \citet{fried}, obtaining a 12\% reduction in errors as shown in Table \ref{tbl:static-plans}.
@@ -349,6 +343,7 @@ preventing agents from steering the dialogue themselves.
 \toprule
 Agent                   & Success & Avg \# turns\\
 \midrule
+Partner planner         & ?        & 10\\
 Partner Planner         & 85.2\%  & 10.10\\
 \quad -unshared         & 77.0\%  & 11.69\\
 \citet{fried}           & 62.4\%  & -\\
@@ -376,33 +371,6 @@ Much of this success comes from the ability to control the
 belief entropy selection heuristic, as shown by the performance of the ablated Partner Planner over human performance.
 The selection heuristic encourages the Partner Planner to be more patient and gather more information before selecting than most human participants,
 reflected in the average number of turns per game.
-% plot of success rate vs number of turns
-
-
-%\textbf{Human evaluation}
-%TBD
-
-\begin{comment}
-\begin{table}[!t]
-\centering
-\begin{tabular}{lrr}
-\toprule
-%                                 & 4   & 5   & 6   &\\
-Agent               & $N$ & Success\\
-\midrule
-Partner Planner     &  A  & X\%  \\
-\citet{fried}       &  B  & Y\% \\
-Human               &  C  & Z\% \\
-\bottomrule
-\end{tabular}
-\caption{\label{tbl:human}
-The success rate of different agents in human evaluation on the hardest setting of \textsc{OneCommon}, with 4 shared dots.
-All agents communicate with a human partner via natural language.
-Each agent type plays $N$ games with a human partner.
-A higher success rate is better.
-}
-\end{table}
-\end{comment}
 
 \section{Future Work}
 %\textbf{Incorporate language, discuss fidelity and OOD-ness for generation/resolution}
@@ -418,7 +386,7 @@ Additionally, the scalability of the method will be tested on dialogue games wit
 %TBD
 
 \section*{Acknowledgements}
-Ge Gao, Jack Morris, Nicholas Tomlin, Woojeong Kim, Celine Lee, Alane Suhr.
+Ge Gao, Omer Gul, Woojeong Kim, Celine Lee, Jack Morris, Alane Suhr, Nicholas Tomlin.
 
 \begin{comment}
 \section*{Limitations}

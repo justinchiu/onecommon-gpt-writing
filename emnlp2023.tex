@@ -99,11 +99,22 @@ Carnegie Mellon University \\
 %1. Integrate language models and symbolic planning
 %1. Language models allow us to handle linguistic variation
 %2. Code for step-by-step reasoning.
-Large language models excel at understanding and generating text and code; however, they face limitations in adhering to task-specific constraints and handling novel grounding.
-These limitations are exacerbated in grounded task-oriented dialogue.
-To address these shortcomings in grounded task-oriented dialogue, we present a modular dialogue system that tackles these challenges.
-We utilize a classical decomposition of the dialogue system into a reader, planner, and writer.
-Our system leverages language models to convert partner utterances into executable code, incorporating grounding libraries. The translated code is executed to track dialogue state, while a symbolic planner determines the next appropriate response. We evaluate our system's performance on the demanding \textsc{OneCommon} dialogue task, which involves grounding discussions on abstract images of scattered dots. In this challenging setting, human success rate is 65.8\%. Our system demonstrates significant advancements in language understanding, as evidenced by strong results in human play, selfplay, and overall performance.
+Large language models excel at understanding and generating text and code; however,
+they face limitations in adhering to task-specific constraints and handling novel grounding.
+These limitations are exacerbated in grounded task-oriented dialogue,
+where constraints and grounding are key to success.
+To address these shortcomings in grounded task-oriented dialogue,
+we integrate language models into a classical modular dialogue system.
+The dialogue system consists of a reader, planner, and writer.
+The reader leverages language models to convert partner utterances into executable code,
+incorporating grounding libraries.
+The translated code is executed to track dialogue state,
+while a symbolic planner determines the next appropriate response.
+We evaluate our system's performance on the demanding \textsc{OneCommon} dialogue task,
+which involves grounding discussions on abstract images of scattered dots.
+In this challenging setting, human success rate is 65.8\%.
+Our system demonstrates significant advancements in language understanding,
+as evidenced by strong results in human play, selfplay, and overall performance.
 \end{abstract}
 
 \section{Introduction}

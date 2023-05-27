@@ -118,20 +118,26 @@ as evidenced by strong results in human play, selfplay, and overall performance.
 \end{abstract}
 
 \section{Introduction}
+Topic sentence: Grounded dialogue requires a lot of generalization.
+Both grounding and lexical variation.
+
 Topic sentence: Large language models have shortcomings, in particular grounding.
 Recent work has shown that tool use can adapt ungrounded language models
 to grounded tasks with minimal supervision.
 Describe code as policies, vipergpt, chatgpt plugins,
 which bake in task-specific biases.
-im 
-Topic sentence: Tool-use has mostly been demonstrated in the single-turn setting,
+
+Topic sentence: But Tool-use has mostly been demonstrated in the single-turn setting,
 other than the commercial success of ChatGPT.
 The challenge of grounded dialogue is dialogue state tracking and reasoning while
 grounding conversation.
+This is exacerbated by state tracking with weird grounding
 
-Topic sentence: We explore ways methods for applying LLMs to solving grounded tasks.
+Topic sentence: We show that the classical dialogue system decomposition
+is still useful with LLMs.
+In particular, modularity allows for building in strong biases.
 Method overview: read, plan, write.
-Cast reading as code generation.
+Cast reading as code generation in order to integrate with symbolic.
 
 Topic sentence: We focus on \textsc{OneCommon}, a challenging grounded dialogue task.
 Description of what's hard about \textsc{OneCommon}.
@@ -205,6 +211,8 @@ This dialogue ends in failure, as the agent and partner did not account for pers
 
 \section{Related work}
 
+\paragraph{Modular dialogue systems}
+
 \paragraph{Tool-based language models}
 Code-as-policies, ViperGPT, PAL, toolformer, VisProg.
 Difference: 
@@ -231,6 +239,8 @@ We decompose dialogue into a sequence of three steps: reading, planning, and wri
 
 \subsection{Reading}
 Language to python translation with execution.
+\subsection{Natural language understanding}
+\subsection{Dialogue state tracking}
 
 \subsection{Planning}
 Ask a new question, a follow-up question, or select.

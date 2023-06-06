@@ -296,22 +296,30 @@ our focus on improving partner models is complementary to multi-turn planning an
 
 \section{Background}
 This section provides the background on \textsc{OneCommon} \citep{onecommon},
-the grounded collaborative dialgoue task of focus.
+the grounded collaborative dialogue task of focus.
 \textsc{OneCommon} is a particularly difficult collaborative reference game,
 played between an agent and partner.
-The agent's goal is to find one dot that is shared between the agent and partner.
+The agent and partner's shared goal is to find one dot that is visible to both,
+one dot in common.
 This is complicated by the fact that the agent and partner have different but 
-overlapping views, illustrated in Figure \ref{fig:oc}.
-In \citet{onecommon}, the agent and partner shared between 4--6 dots,
+overlapping views, illustrated in Figure \ref{fig:oc},
+leading to perspective-dependent ambiguity.
+For example: A dark dot to the agent may not be dark to the partner, depending on what they see.
+Games are constructed so that the agent and partner share between 4--6 dots,
 with fewer shared dots resulting in increased ambiguity and therefore game difficulty.
-We focus only on the most challenging setting, where 4 dots are shared.
+We focus on the most challenging setting, where 4 dots are shared.
 
-Why is this difficult for vision and language systems?
-In Table \ref{tbl:refres}, we give some small-scale results on reference resolution with a modern VQA system
-and prompting.
-Fine-tuned older model does not work, VQA system does not work for a \textit{single} turn.
-Multimodal task-oriented dialogue can have many failure points in addition to compounding errors.
-Humans can also be bad in terms of strategy!
+This setting is particularly difficult for pretrained vision and language models.
+We hypothesize that descriptions of combinations of abstract dots are not
+well-represented in pretraining datasets.
+We motivate our system with a small-scale preliminary study, where we
+test whether systems can resolve simple templated referring expressions
+in \textsc{OneCommon}.
+The results in Table \ref{tbl:refres}i show that
+resolution is difficult for a state-of-the-art vision and language model,
+with a language-only prompting approach faring similarly.
+However, a task-specific but minimally supervised code generation approach
+is quite accurate.
 
 \begin{table}[!t]
 \centering

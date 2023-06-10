@@ -272,12 +272,12 @@ grounding, while incorporating components of dialogue system pipelines for
 handling the unique challenges afforded by dialogue \wenting{this part is a bit awkward in that it's too abstract for me to understand how code can handle coreference and ellipsis, state tracking, and planning all at the same time. Can you be more specific or just maybe focus on planning?}.
 \end{comment}
 
-We evaluate \system{} on \textsc{OneCommon}, a challenging grounded dialogue task \citep{onecommon}.
+We evaluate \system{} on \textsc{OneCommon}, a challenging grounded dialogue task where an agent and partner are given different but overlapping views and must find one dot in common, illustrated in Figure \ref{fig:oc} \citep{onecommon}.
 The visual grounding in \textsc{OneCommon} is particularly challenging:
 Players are required to discuss a set of abstract dots, a setting not commonly found in
 pretraining datasets for vision models.
 This is exacerbated by \textsc{OneCommon}'s partial observability;
-players do not have exactly the same perspective, making mistakes a large risk.
+players do not have exactly the same perspective,making mistakes a large risk.
 \daniel{Need a very brief description of the setting in this paragraph -- overlapping views, each player sees one, need to agree. Refer to Fig 1.}
 %The dots themselves are often difficult to describe \wenting{this is too specific, just say partial observability makes both parties harder to reach a common ground?}, with referring expressions made even more ambiguous by \textsc{OneCommon}'s partial observability.
 
@@ -309,8 +309,9 @@ Task-oriented dialogue often uses multi-turn model-based planning.
 Here planning is performed in the space of language via rollouts or tree-search
 \citep{dnd,yarats2017rollout,ingress,jang2020bapomdp}.
 %Our work reduces perspective-dependent ambiguity by incorporating a distribution over unobserved context into the partner model.
-While we use a single-turn planning heuristic,
-our focus on improving partner models is complementary to multi-turn planning and can be combined in future work.
+We focus on symbolic planning.
+\justin{What would codegen output look like without symbolic planning?
+Codegen gives you a structured output that you would have to linearize. Difficulty in linearization was the whole point of using code. Impasse}
 
 \section{Background}
 This section provides the background on \textsc{OneCommon} \citep{onecommon},
@@ -359,38 +360,56 @@ The agent then plans what to say, and generates a response given the plan.
 }
 \end{figure*}
 
-\section{Coding and planning in reference games}
+\section{Read-plan-write}
+\justin{How to separate general from domain specific?}
 % High level goal
-This section provides a high-level overview of the inputs and outputs of our dialogue system, Read-plan-write (\system{}),
-with implementations given in Section \ref{sec:implementation}.
-
+%This section provides a high-level overview of the inputs and outputs of our dialogue system, Read-plan-write (\system{}), with implementations given in Section \ref{sec:implementation}.
+This section details the components of our dialogue system, Read-plan-write (\system{}).
 Our goal is to build a grounded dialogue system that,
 given dialogue context and history,
-produces a response to the partner's last utterance.
-\daniel{and chooses a dot at the end?}
+produces a response to the partner's last utterance
+such as giving an answer if asked a question,
+asking their own question, or ending the game.
+%\daniel{and chooses a dot at the end?}
 We propose a dialogue system, \system{},
 which follows a classical dialogue system pipeline decomposition:
 reading, planning, and writing \citep{young2006pomdp,young2013pomdpsurvey,he2018dnd}.
-\justin{do i need to say more about this, eg why we do this?}
+%\justin{do i need to say more about this, eg why we do this?}
 %The modular pipeline allows us to build in inductive biases that allow the targeted use of a general-purpose large language model in combination with high-precision task-specific components.We provide an illustration of the system in Figure \ref{fig:system}.
 
-%Reading
-\subsection{Read}
-At the start of each turn, partner utterances are parsed into a plan.
-The plan is a structured representation of 
-the semantics of the utterance.
-Plans in \textsc{OneCommon} consist of
-a dialogue act, a Python function, and a response to the previous turn.
+\subsection{Symbolic representations}
+At the heart of our system is a symbolic meaning representation, which we refer to as a plan.
+We assume that plans hold the game-relevant information used to generate a particular utterance. Reading involves inverting that generative process, parsing utterances into plans, while writing involves applying that process, describing plans via utterances.
+Symbolic plans allow the system to
+directly and efficiently synthesize past information,
+as well as plan future actions.
+
+In our formulation of \textsc{OneCommon},
+plans consist of
+a dialogue act, a set of dots under discussion, and a confirmation of the previous turn.
 
 Given the nature of \textsc{OneCommon}, where 
 referring expressions are pivotal to understanding,
 we restrict our focus to dialogue acts related to referring expressions.
 We consider 3 coarse dialogue acts:
 \textsc{start}, \textsc{follow-up}, and \textsc{select}.
-\textsc{Start} begins a topic,
-\textsc{follow-up} follows up on a topic,
-and \textsc{select} communicates the intent to end the game.
-Utterances may not correspond to any of these dialogue acts, which we label \textsc{None}.
+\textsc{Start} utterances introduce a new set of dots under discussion.
+For example, ``Do you see a black dot?''
+\textsc{follow-up} utterances build on previously introduced sets, such as ``Yes, is it larger than all the others?''
+Note that this is different from the set of mentions in the utterance, as the set under discussion is just the black dot, and not ``all the others''.
+\textsc{follow-up} utterances can be questions can discuss previously unmentioned properties of already mentioned dots or add new dots to the set under discussion.
+\textsc{select} utterances communicate an intent to end the game, as well as which dot to select.
+Finally, utterances that do not correspond to any of these dialogue acts are labelled \textsc{None}.
+
+Confirmations take one of three values: \textsc{yes}, \textsc{no}, or \textsc{None}, and serve as answers to questions from the previous turn.
+We make the simplifying assumption that the system must only deal with binary questions, and ignore others.
+
+\textbf{Belief state}
+
+
+\subsection{Read}
+The goal of reading is to parse partner utterances into plans and keep track of the common ground built over the course of the dialogue.
+
 
 The Python function is a translation of the set of constraints expressed in the partner utterance.
 Following \citet{codeaspolicies2022} and \citet{vipergpt},
@@ -542,14 +561,21 @@ This section provides the parameterization and implementation details of the sys
 %1) confirmation
 %2) Dialogue act classification.
 %3) Reference resolution and follow-up chains (slot carry-over). ;(Tree extension would be cool)
+
+Intro sentence
+
+\textbf{Plan parsing}
 We prompt a large language model to obtain plans from utterances.
 For dialogue act and response classification, as well as
 cod generation, we use few-shot prompting.
 The examples in all prompts are constructed based loosely on
-20 training examples from \textsc{OneCommon}.
+5 dialogues from static \textsc{OneCommon} data collected by \citet{onecommon}.
 
 For code generation, we craft 2 synthetic full multi-turn dialogue examples,
 with the goal of covering as many library functions as possible.
+
+\textbf{Library}
+Describe library design
 
 \textbf{Belief state and response model}
 The agent maintains a belief distribution over which of the 7
@@ -588,7 +614,7 @@ and evaluate whether different systems are able to accurately understand the gen
 For this evaluation alone, the resolution system has the same view as the partner.
 We report the exact match accuracy of the resolved plan.
 
-Our primary form of evaluation is
+Next, our primary form of evaluation is
 human evaluation in \textsc{OneCommon} dataset \citep{onecommon},
 specifically game success with human partners.
 We also report the number of turns taken.

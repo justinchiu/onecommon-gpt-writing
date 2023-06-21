@@ -17,7 +17,9 @@
 \usepackage{mystyle}
 \usepackage{multirow}
 
-\newcommand{\system}{RPW}
+\newcommand{\system}{SysName}
+\newcommand{\reading}{ReadName}
+\newcommand{\planning}{PlanName}
 
 % For proper rendering and hyphenation of words containing Latin characters (including in bib files)
 \usepackage[T1]{fontenc}
@@ -94,7 +96,8 @@
 % and set <dim> to something 5cm or larger.
 
 \title{
-Integrating Language Models and Symbolic Planning for Grounded Dialogue
+Integrating Symbolic Planning and Code Generation\\
+for Grounded Dialogue
 }
 
 % Author information can be set in various styles:
@@ -138,527 +141,486 @@ Carnegie Mellon University \\
 \begin{document}
 \maketitle
 \begin{abstract}
-%Contributions:
-%1. symbolic planning
-%2. codegen for grounding
-%3. results
-Large language models excel at understanding and generating text and code; however,
-they face limitations in adhering to task-specific constraints and handling novel grounding.
-These limitations are exacerbated in grounded task-oriented dialogue,
-where constraint and grounding errors compound.
-We address these shortcomings by composing large language models
-with a symbolic planner and code generation for grounding in a modular and interpretable dialogue system.
-Our system consists of a reader, planner, and writer:
-The reader leverages language models to convert partner utterances into executable code,
-calling functions that perform grounding.
-The translated code's output is stored to track dialogue state,
-while a symbolic planner determines the next appropriate response.
-We evaluate our system's performance on the demanding \textsc{OneCommon} dialogue task,
-where dialogue is grounded on abstract images of scattered dots.
-In this challenging setting, our system outperforms humans with a success rate of X\% vs 65.8\%.
+Large language models (LLMs) excel at processing and generating text and code. However, LLMs have had limited applicability in grounded task-oriented dialogue as they are difficult to steer toward task objectives and fail to handle novel grounding. We present a modular and interpretable grounded dialogue system that addresses these shortcomings by composing LLMs with a symbolic planner and grounded code execution. Our system consists of a reader and planner: the reader leverages an LLM to convert partner utterances into executable code, calling functions that perform grounding. The translated code's output is stored to track dialogue state, while a symbolic planner determines the next appropriate response. We evaluate our system's performance on the demanding \textsc{OneCommon} dialogue task, involving collaborative reference resolution on abstract images of scattered dots. In this challenging setting, our system outperforms the previous state-of-the-art.
 \end{abstract}
 
 \section{Introduction}
-\begin{comment}
-\justin{rewrite this, don't focus on OOD. code => step by step reasoning (vipergpt, CaP). extend to dialogue setting. dialogue challenges: ref res, belief, planning.}
-Large language models are strong dialogue systems,
-capable of obtaining reliable and accurate results in zero or few-shot settings \citep{fstod,lambda,godel}.
-However, grounded dialogue often requires multimodal grounding in visual context.
-Recent work composes large language models with separately pretrained vision models,
-hoping that vision models can generalize to novel image domains \citep{blip2}.
-This exposes grounded dialogue systems to a multiplicative source of error:
-if just one of either the language or vision are out of domain for any component of a 
-dialogue system, overall system accuracy will suffer.
-
-
-One solution to compounding error from multimodality is modularity.
-Recent work has investigated the use of code generating language models for composing vision and
-language models in a modular fashion, processing each modality separately \citep{codeaspolicies2022,vipergpt}.
-The modularity of these systems also enables task-specific biases to be built into systems.
-For example, \citet{codeaspolicies2022} craft a Python library that serves as a tool a
-code generation model can call in order to manipulate a robot arm.
-\end{comment}
-
-Grounded task-oriented dialogue requires adherence to task-specific constraints. \daniel{What are constraints? On actions taken, or on language used?}
-Requires grounding and planning.
-
-Fully end-to-end models, while extremely flexible, may fail to adhere to constraints,
-and are not straightforward to control \citep{vipergpt}.
-
-Recent work has proposed using code-generating language models as grounded question-answering systems
-and robot policies,
-demonstrating that code is a powerful medium for breaking down complex tasks into simple steps.
+% Dialogue needs planning
+Success in grounded task-oriented dialogue requires intentional communication guided by strategic planning \citep{cicero}.
+Dialogue agents must read partner utterances, update their beliefs, then make a plan that furthers their goal.
+These plans must take into account both dialogue history and grounding, such as in an image.
+In end-to-end systems based solely on large language models,
+this process is implicit and therefore difficult to control,
+requiring extra supervision \citep{rlhf} or expensive search \citep{astaresque} to improve.
+While recent work has taken steps to rectify implicit reasoning via
+planning in language space, 
+where intermediate steps are generated by a language model \citep{cot},
+there is no guarantee that these approaches result in strong plans.
+Additionally, planning in language space is expensive,
+requiring inference in a large language model.
+\daniel{Relevance of CoT -- people may ask for a comparison to it? And will people know what language planning is?}
 
 \begin{figure}[t!]
-\setlength{\abovecaptionskip}{0pt}
-
-\centering
-
-\scalebox{1.1}{
-\begin{tikzpicture}
-
-%\filldraw[gray!40] (0,0) circle (.3em);
-%\filldraw[gray!100] (.25,0) circle (.38em);
-%\filldraw[gray!160] (.5,0) circle (.45em);
-
-\filldraw[gray!160] (-.2,.6) circle (.45em); % 766
-\filldraw[gray!40] (-.7,-.3) circle (.4em); % 51
-\filldraw[gray!40] (.4,.1) circle (.3em); % 52
-\filldraw[gray!100] (.8,-.1) circle (.3em); % 66
-
-% left
-\filldraw[gray!140] (-1.3,-1.2) circle (.3em); % 13
-\filldraw[gray!100] (-1.6,-1.8) circle (.3em); % 14
-\filldraw[gray!110] (-.2,-1.1) circle (.4em); % 74
-
-% right
-\filldraw[gray!100] (-1,1.5) circle (.3em); % 28
-\filldraw[gray!100] (-.5,1.6) circle (.38em); % 69
-\filldraw[gray!160] (.8,1.8) circle (.45em); % 26
-
-% left selects 76
-\draw[blue,thick] (-.2,.6) circle (.7em);
-% right selects 26
-\draw[red,thick] (.8,1.8) circle (.7em);
-
-\draw[blue,thick] (-.3,-.7) circle (5em);
-\draw[red,thick] (.2,1) circle (5em);
-\end{tikzpicture}
-}
-
-\vspace{1em}
-
-\small
-\begin{tabular}[b]{@{}l@{}l@{}}
-\toprule
-{\color{blue} A}:\;&I have one large black dot by itself. Do you have it? \\
-{\color{red} P}:\;&Yes, I do have that. \\
-{\color{blue} A}:\;&Let's pick that one. \\
-{\color{red} P}:\;&<select> {\color{red} red} \\
-{\color{blue} A}:\;&<select> {\color{blue} blue}\\
-\bottomrule
-\end{tabular}
-
-\vspace{1em}
-
+\includegraphics[width=\columnwidth]{imgs/Read-plan col.png}
 \caption{
-placeholder. replace with figure that shows value of planning
-and codegen for grounding.
+\label{fig:system}
+System
 }
-\label{fig:oc}
 \end{figure}
 
-Grounding with code-generating systems has largely been studied in the single turn setting \citep{vipergpt,codeaspolicies2022}.
-\daniel{We should say \emph{why} code is useful for grounding, in a way that also covers OneCommon. e.g. breaking a complex task into reusable functions which can be executed in an environmental context?}
-We present a system, \system{}, that extends minimally supervised code-generation for grounding
-to the grounded dialogue setting by incorporating symbolic planning.
-\system{} follows a classical dialogue system decomposition:
-read, plan, and write \citep{young2013pomdpsurvey}.
-The system reads partner utterances and parses them to code,
-using the execution results to track dialogue state and produce a symbolic plan of what to say next.
-%At the core of the system is the state representation: We integrate both a probabilistic belief state \citep{young2006pomdp} as well as code\wenting{integrate what in what?}.
-%Our system does not require supervision beyond few-shot prompting,
-%but may require a task-dependent library of code \wenting{can you be more positive and just say we only need minimum supervision (task-dependent library can just be regarded as instruction right? which every method needs)}.
+Rather than implicit or heuristic reasoning, we are interested in explicit reasoning and planning over
+symbolic representations.
+Symbolic representations are controllable by construction,
+allowing system designers to easily build in task-specific knowledge \citep{he2018dnd,cicero}.
+This controllability is crucial for obtaining task-specific success using general tools,
+even with large language models.
+% probably need examples here
+%\justin{add in code}
 
-\justin{mentioning python library is confusing}
+We provide an example from \textsc{OneCommon}, 
+a particularly challenging grounded dialogue game \citep{onecommon}.
+The goal of \textsc{OneCommon} is to, through dialogue, identify and agree on one dot in common with your partner,
+who has an overlapping but different view of an underlying set of dots, illustrated in Figure \ref{fig:system}.
+Our symbolic representation is the set of dots mentioned in a particular utterance.
+The difficulty in \textsc{OneCommon} is grounding the contextual spatial relationships described in language
+to the visible dots, while ensuring that descriptions are not easily confused due to
+the partner's different view.
 
 \begin{comment}
-rather than grounded dialogue \wenting{is this single turn vs multiple, or single turn vs grounded dialogue?}.
-Grounded dialogue offers new challenges:
-dialogue systems must deal with linguistic phenomena such as coreference and ellipsis,
-state tracking, and planning.
-We present a modular grounded dialogue system, \system{}, that utilizes code generation for 
-grounding, while incorporating components of dialogue system pipelines for
-handling the unique challenges afforded by dialogue \wenting{this part is a bit awkward in that it's too abstract for me to understand how code can handle coreference and ellipsis, state tracking, and planning all at the same time. Can you be more specific or just maybe focus on planning?}.
+There are three challenges in a dialogue system with symbolic representations:
+1) scaling manually designed symbolic representations
+2) mapping to and from symbols to language,
+and 3) computationally reasoning over and composing those representations.
+We build on recent work, which has shown that code-generating language models hold promise in addressing challenges 2 and 3, mapping to and from language as well as reasoning over symbols.
+Promising results have been achieved in the visual question-answering and robotic instruction following domains
+by using code-generating systems to map language to Python, leaving grounding to API libraries
+that are called by the generated code \citep{vipergpt,codeaspolicies2022,gao2023pal}.
+\daniel{I'm not sure this paragraph adds much, the intro is a bit long, and I don't know that we need to highlight the symbolic nature of the system -- just argue benefits of code directly. Maybe jump right into the next paragraph, and move these references there?}
 \end{comment}
 
-We evaluate \system{} on \textsc{OneCommon}, a challenging grounded dialogue task where an agent and partner are given different but overlapping views and must find one dot in common, illustrated in Figure \ref{fig:oc} \citep{onecommon}.
-The visual grounding in \textsc{OneCommon} is particularly challenging:
-Players are required to discuss a set of abstract dots, a setting not commonly found in
-pretraining datasets for vision models.
-This is exacerbated by \textsc{OneCommon}'s partial observability;
-players do not have exactly the same perspective,making mistakes a large risk.
-\daniel{Need a very brief description of the setting in this paragraph -- overlapping views, each player sees one, need to agree. Refer to Fig 1.}
-%The dots themselves are often difficult to describe \wenting{this is too specific, just say partial observability makes both parties harder to reach a common ground?}, with referring expressions made even more ambiguous by \textsc{OneCommon}'s partial observability.
+We utilize code-generation to map from language to symbolic rerpresentations.
+Code-generation has a couple appealing properties:
+First, it is well understood by large language models.
+Modern language models are trained on a mixture of code and natural language, affording them the capability of, with some accuracy, translating between the two \citep{chen2021evaluating}.
+Additionally, rather than mapping utterances directly to symbols and potentially utilizing shortcuts,
+code acts as a compositional knowledge representation.
+This allows for a code-generation system to potentially generalize to novel grounding,
+provided a library of Python functions that perform the grounding for the system \citep{codeaspolicies2022}.
 
-In human evaluation, \system{} outperforms human players.
-Demonstrates method for minimally supervised adaptation of dialogue systems to new grounded tasks.
-\daniel{What's the minimal supervision -- is it writing functions for the code model to call, writing few shot prompts, both? And maybe ``construction... for'' rather than ``adaptation... to''}
-\daniel{Make novel contribution more explicit, e.g. contrasting with prior work on code models for grounding which has all been single-turn}
+We present a system, \system{}, 
+that reads by translating partner utterances into code,
+uses the execution results to track dialogue state, and produces a symbolic plan of what to say next.
+\system{} plans by optimizing expected information gain, which has been shown to be effective at building 
+a key aspect of collaborative dialogue: common ground \citep{yu2019info,white-etal-2021-open,ocp}.
+%\daniel{I think information gain is good to mention and will probably actually be more familiar to an NLP audience than ``partner model.'' Maybe reorder these two concepts?}
+
+We evaluate \system{} on \textsc{OneCommon},
+a grounded dialogue task where the given human demonstrations are often suboptimal and the visual grounding
+is out-of-domain for vision models.
+\daniel{maybe telegraph these as benefits of code earlier, if you don't already}
+\justin{does this come out better in the previous paragraph?}
+Our goal is to out-perform human demonstrations on the hardest setting
+with a minimally supervised approach.
+We show that \system{} accomplishes this both in human evaluation as well as selfplay,
+demonstrating the effectiveness of planning with code-generation as glue.
 
 \section{Related work}
+Dialogue systems have a long history of reasoning with symbolic representations.
+%In 1968, \citet{winograd} developed the SHRDLU system, which was a rule-based grounded dialogue systemthat discussed a simple block world with a partner.
+When available, symbolic representations have been found to improve
+the performance of dialogue systems, especially in the setting of grounded dialogue games \citep{winograd,young2006pomdp,he2018dnd,cicero}.
+\textsc{Cicero} in particular utilizes symbolic planning in a \textsc{Diplomacy} system,
+a strategy game that requires negotiation and possibly deception \citep{cicero}.
+\textsc{Cicero} requires a supervised dataset for training their system.
+We utilize code-generating large-language models for minimial supervision, but require a hand-crafted perception API.
+Prior work in symbolic reasoning for dialogue also painstakingly crafts domain-specific executable representations  and composition operators \citep{sm}.
+We show that, in order to deal with novel grounding, code generation and planning with symbolic representations
+are effective.
+We utilize Python for grounding utterances in context and avoid designing a domain-specific language.
 
-\paragraph{Modular dialogue systems}
-SHRDLU. POMDP Young \citep{young2006pomdp}. SMCalFlow \citep{sm}.
-Decoupling strategy and generation \citep{he2018dnd}. \citep{fstod}.
-Difference: Combine pieces of each: simple executable state,
-flexibility afforded by code-generating language models,
-probabilistic belief in grounded dialogue task.
+Planning in dialogue systems has recently eschewed symbolic representations in favor of
+planning directly in text, 
+where systems either perform roll-outs, tree-search, or other forms of intermediate reasoning in language.
+This allows system designers to avoid manually defining symbolic representations \citep{yarats2017rollout,jang2020bapomdp,gandhi2023strategic}.
+However, the accuracy of language-space planners is still low in many settings \citep{valmeekam2023planning}.
+We focus on symbolic planning, where planning is defined in a narrow space that is correct and controllable by construction.
 
-\paragraph{Tool-based language models}
-Code-as-policies \citep{codeaspolicies2022}, ViperGPT \citep{vipergpt},
-PAL, toolformer, VisProg.
-VisualChatGPT, chatgpt with plugins.
-Difference: Explicit symbolic planning,
-integration with classical dialogue system.
+With the recent progress in large language modeling,
+code generation for modular grounded systems has quickly gained interest.
+They do not require task-specific training data, relying solely on large pretraining for generalization, API definitions for grounding, and a few usage examples for contextualization,
+making them cheap to apply.
+A body of work utilizes a large language model for instruction following
+by generating Python code that makes calls to lower-level perception libraries
+\citep{codeaspolicies2022,vipergpt,gupta2022visual,gao2023pal}.
+This extends prior work on executable semantic parsing \citep{liang2016learning,johnson2017inferring,cheng2018learning} with large language models.
+We apply these advances to the setting of grounded dialogue,
+where code generation grounds language to a novel visual context for use in
+explicit planning in dialogue system \citep{young2013pomdpsurvey}.
 
-\paragraph{Planning}
-Lots of recent LM planning papers.
-\citep{gandhi2023strategic}
-Task-oriented dialogue often uses multi-turn model-based planning.
-Here planning is performed in the space of language via rollouts or tree-search
-\citep{dnd,yarats2017rollout,ingress,jang2020bapomdp}.
-%Our work reduces perspective-dependent ambiguity by incorporating a distribution over unobserved context into the partner model.
-We focus on symbolic planning.
-\justin{What would codegen output look like without symbolic planning?
-Codegen gives you a structured output that you would have to linearize. Difficulty in linearization was the whole point of using code. Impasse}
+Prior work on collaborative reference games focus on building common ground
+\citep{mf,pb,pip}.
+Prior work by \citet{fried} implements an approximation of pragmatic reasoning on \textsc{OneCommon}, but plans in language space and utilizes supervised models for mapping language to symbols.
+\citet{pip} plan in symbolic space, but do not incorporate natural language. 
+We plan in symbolic space and map from language to symbols via code generation.
 
-\section{Background}
-This section provides the background on \textsc{OneCommon} \citep{onecommon},
-the grounded collaborative dialogue task of focus.
-\textsc{OneCommon} is a particularly difficult collaborative reference game,
-played between an agent and partner.
-The agent and partner's shared goal is to find one dot that is visible to both,
-one dot in common.
-This is complicated by the fact that the agent and partner have different but 
-overlapping views, illustrated in Figure \ref{fig:oc},
-leading to perspective-dependent ambiguity.
-For example: A dark dot to the agent may not be dark to the partner, depending on what they see.
-Games are constructed so that the agent and partner share between 4--6 dots,
-with fewer shared dots resulting in increased ambiguity and therefore game difficulty.
-We focus on the most challenging setting, where 4 dots are shared.
+\section{Problem setup: Reference games}
+This section describes the problem setup of collaborative reference games, a type of collaborative dialogue.
 
-At each turn, the agent must read the partner's utterance
-and understand it given the dialogue history, all previous utterances,
-as well as the dialogue context, the visual representation of dots.
-The agent must then either give a response or select a dot.
-Once a dot is selected by either the agent or partner, the other player
-must also select a dot and the game ends.
-Both the agent and partner win if the selected dots match.
-The partner is not notified of which dot the agent selected
-until after the game ends, and vice versa.
+We focus on collaborative reference games, which
+pair an agent and a partner in order to agree on a shared object through natural language dialogue \citep{pb,pip,mf,onecommon}.
+Mirroring realistic scenarios, many reference games are also partially observable,
+where the agent and partner have different perspectives, and so they must resolve ambiguity by building common ground.
 
-\begin{comment}
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{imgs/Onecommon System.png}
-\caption{\label{fig:system}
-Placeholder dialogue system figure.
-}
-\end{figure}
-\end{comment}
+% notation
+At each turn, the agent \textbf{reads} the partner's utterance, converting it into a symbolic representation, $y$.
+The agent \textbf{plans} by updating its symbolic representation of the dialogue state, $z$, given $y$,
+then reasoning about what to say next, producing their own symbolic plan, $x$.
+We illustrate this process in Figure \ref{fig:setup}.
+\justin{todo figure with mapping to and from language / planning in symbol space}
 
-\begin{figure*}[t]
-\centering
-\includegraphics[width=2\columnwidth]{imgs/Onecommon System horizontal.png}
-\caption{\label{fig:system}
-At each turn, the agent first reads the partner utterance, parsing it into a plan
-and generating a code fragment.
-The fragment is composed into a Python function, executed, 
-and used to update the agent's belief state.
-The agent then plans what to say, and generates a response given the plan.
-}
-\end{figure*}
+As a representative reference game, we study \textsc{OneCommon}.
+In \textsc{OneCommon}, the agent and partner see different but overlapping views of a set of dots, and the goal is to find one dot in common.
+\textsc{OneCommon} is particularly difficult due to its partial observability and visual context,
+illustrated in Figure \ref{fig:oc}.
+The visual grounding in \textsc{OneCommon} was constructed to make referring expressions ambiguous, with continuous-valued sizes, colors, and positions of dots \citep{onecommon}.
 
-\section{Read-plan-write}
-\justin{How to separate general from domain specific?}
-% High level goal
-%This section provides a high-level overview of the inputs and outputs of our dialogue system, Read-plan-write (\system{}), with implementations given in Section \ref{sec:implementation}.
-This section details the components of our dialogue system, Read-plan-write (\system{}).
-Our goal is to build a grounded dialogue system that,
-given dialogue context and history,
-produces a response to the partner's last utterance
-such as giving an answer if asked a question,
-asking their own question, or ending the game.
-%\daniel{and chooses a dot at the end?}
-We propose a dialogue system, \system{},
-which follows a classical dialogue system pipeline decomposition:
-reading, planning, and writing \citep{young2006pomdp,young2013pomdpsurvey,he2018dnd}.
-%\justin{do i need to say more about this, eg why we do this?}
-%The modular pipeline allows us to build in inductive biases that allow the targeted use of a general-purpose large language model in combination with high-precision task-specific components.We provide an illustration of the system in Figure \ref{fig:system}.
+A natural symbolic representation for both partners and agents, $y$ and $x$ respectively, in reference games is the set of objects mentioned.
+In \textsc{OneCommon}, this takes the form of sets of dots to ask about, as well as any answers to previous questions.
 
-\subsection{Symbolic representations}
-At the heart of our system is a symbolic meaning representation, which we refer to as a plan.
-We assume that plans hold the game-relevant information used to generate a particular utterance. Reading involves inverting that generative process, parsing utterances into plans, while writing involves applying that process, describing plans via utterances.
-Symbolic plans allow the system to
-directly and efficiently synthesize past information,
-as well as plan future actions.
+\section{Reading: From language to symbols}
+%\justin{title is kind of a waste, need to connect to decode / encode story}
+Our approach to grounded reference games separates symbolic reasoning from language, allowing explicit steering.
+%As the goal of reference games is to reason about shared objects, a set of objects is a natural symbolic representation.
+%Given this representation, reading consists of mapping from utterances to the set of objects that are mentioned, and planning means reasoning about the most useful objects to ask about next.
+Reading consists of mapping from utterances to symbolic representations, and planning reasons about what to ask next in symbolic space.
 
-In our formulation of \textsc{OneCommon},
-plans consist of
-a dialogue act, a set of dots under discussion, and a confirmation of the previous turn.
+We address three challenges in reading: First, reading requires grounding utterances in context. Second, utterances are compositional. Utterances build on top of each other, while each individual utterances themselves consists of smaller semantic components. Third, systems must solve the previous two challenges quickly, as real-time dialogue systems require reasonable response times.
 
-Given the nature of \textsc{OneCommon}, where 
-referring expressions are pivotal to understanding,
-we restrict our focus to dialogue acts related to referring expressions.
-We consider 3 coarse dialogue acts:
-\textsc{start}, \textsc{follow-up}, and \textsc{select}.
-\textsc{Start} utterances introduce a new set of dots under discussion.
-For example, ``Do you see a black dot?''
-\textsc{follow-up} utterances build on previously introduced sets, such as ``Yes, is it larger than all the others?''
-Note that this is different from the set of mentions in the utterance, as the set under discussion is just the black dot, and not ``all the others''.
-\textsc{follow-up} utterances can be questions can discuss previously unmentioned properties of already mentioned dots or add new dots to the set under discussion.
-\textsc{select} utterances communicate an intent to end the game, as well as which dot to select.
-Finally, utterances that do not correspond to any of these dialogue acts are labelled \textsc{None}.
-
-Confirmations take one of three values: \textsc{yes}, \textsc{no}, or \textsc{None}, and serve as answers to questions from the previous turn.
-We make the simplifying assumption that the system must only deal with binary questions, and ignore others.
-
-\textbf{Belief state}
-
-
-\subsection{Read}
-The goal of reading is to parse partner utterances into plans and keep track of the common ground built over the course of the dialogue.
-
-
-The Python function is a translation of the set of constraints expressed in the partner utterance.
-Following \citet{codeaspolicies2022} and \citet{vipergpt},
-we assume access to an existing library of functions.
-In \textsc{OneCommon}, we rely on a library of visual primitive functions
-that can be used to evaluate properties of dots:
-the size, color, and relative position of a single or group of dots.
-We provide an example below, where the partner offers the first utterance
-in a game:
+We illustrate these challenges with an example from \textsc{OneCommon}.
+Systems must be able to understand exchanges such as 
 
 \begin{Dialogue}
-    \Partner{Do you see a black dot?}
-    \AgentDo{%
-      def turn(state):\newline
-      \strut~~state = set()\newline
-      \strut~~for dot in single\_dots():\newline
-      \strut~~~~if is\_dark(dot):\newline
-      \strut~~~~~~state.add(dot)\newline
-      \strut~~return state
-    }
+    \AgentSay{Do you see a triangle?}
+    \Partner{Yes, next to a small grey dot.}
 \end{Dialogue}%
 
-\noindent This is a \textsc{start} utterance, as there are no
-previous utterances to \textsc{follow-up} on.
-The generated Python function, \texttt{turn(state)},
-takes a set of previously discussed dot configuration possibilities \texttt{state}
-and filters out unmentioned sets of dots.
-In this example, 
-the Python function loops over all individual dots returned by the function
-\texttt{single\_dots()} and returns the set of all dark dots.
-As this is a \textsc{start} utterance, the argument \texttt{state} is not used.
+\noindent where spatial relationships are described compositionally,
+building upon each other.
 
-Each turn calls a set of library functions in order to
-express the logical constraints of the utterance.
-The function \texttt{is\_dark(dot)} returns true if the greyscale dot is above a certain color threshold.
-Similar to Code as Policies \citep{codeaspolicies2022},
-we define a library of Python functions by hand.
-Since the generated code is in Python, the model is able to flexibly
-combine our custom library with other Python code such as 
-list comprehensions and standard library functions.
-The function \texttt{is\_dark} is an example of such a library function,
-which is used to ground reasoning in the visual context.
-In general, there may be any number of library functions calls in the function body.
-The full library of functions is given in Appendix \ref{sec:library}.
+Our system, \system{}, reads partner utterances by generating and executing code.
+Code is a fitting semantic representation of grounded dialogue
+with compositional structure,
+naturally mirroring the ability of referring expressions to
+refer to and build upon previous utterances.
 
-Naturally, as this example was the first turn, there is no partner response to any previous turns.
-Responses either confirm or deny a previous dot mention,
-and can take three values: \textsc{Yes}, \textsc{No}, or \textsc{None}.
-
-Next, we provide an example of a \textsc{follow-up} utterance:
+Given an utterance, we generate a code representation of that utterance, a function that yields the partner's symbolic representation, $y$.
+The code representation consists of a series of perceptual library functions with grounded semantics, drawn from a predefined API.
+This API allows the system to decompose complex grounding into step-by-step reasoning.
+We provide an example of a code representation in \textsc{OneCommon} below:
 
 \begin{Dialogue}
-    \Partner{Do you see a big black dot?}
-    \AgentSay{Yes, next to a small grey dot.}
-    \Partner{Yes, is there also a light dot to the left?}
+    \AgentSay{Do you see a triangle?}
+    \AgentDo{agent\_plan\_x = [[a,b,c]]}
+    \Partner{Yes, next to a small grey dot.}
     \AgentDo{%
-      def turn(state):\newline
-      \strut~~for a,b in state:\newline
-      \strut~~~~for dot in single\_dots():\newline
+      def turn(prev\_mentions):\newline
+      \strut~~mentions = set()\newline
+      \strut~~for a,b,c in prev\_mentions:\newline
+      \strut~~~~for d in single\_dots():\newline
       \strut~~~~~~if (\newline
-      \strut~~~~~~~~is\_light(dot)\newline
-      \strut~~~~~~~~and is\_left(dot, [a,b])\newline
+      \strut~~~~~~~~is\_small(d)\newline
+      \strut~~~~~~~~and is\_grey(d)\newline
+      \strut~~~~~~~~and all\_close([a,b,c,d])\newline
       \strut~~~~~~):\newline
-      \strut~~~~~~~~state.add([a,b,dot])\newline
-      \strut~~return state
+      \strut~~~~~~~~mentions.add([a,b,c,d])\newline
+      \strut~~return mentions\newline
+      partner\_mentions\_m = turn(agent\_plan\_x)
     }
 \end{Dialogue}%
 
-\noindent This utterance confirms the plan of the previous turn 
-and also builds upon that plan, adding a new dot.
-For \textsc{follow-up} utterances,
-the argument \texttt{state} is the output of a previous turn.
-and contains all pairs of dots that are black and grey, as well as the correct sizes.
-The \texttt{turn} function will return all dot triplets that satisfy the follow-up question.
-\textsc{follow-up} utterances always refer to a previous turn.
-Similar to \citet{sm}, we utilize task-specific heuristics for resolving the \texttt{state} variable,
-which we describe in Section \ref{sec:read}.
-Subsequent partner utterances are likewise parsed into Python functions,
-using the parsed previous utterances as context.
-\justin{Need to give example of passing \textsc{state} variable and state list.
-Probably pseudocode.}
-
-%State tracking
-In addition to tracking the output of every previous turn's plan,
-we also maintain a probabilistic belief state over task-specific quantities.
-This belief state is updated via Bayes' rule using a model of partner responses given
-the agent's previous plan and belief state \citep{young2006pomdp}.
-In \textsc{OneCommon}, the belief state is a distribution over all possible shared dot configurations.
-The response model models the partner response given which dots are shared (tracked by the belief state) and 
-agent's previous plan.
-We build on the response model from \citep{ocp}, detailed in Section \ref{sec:implementation}.
-% would be cool if the model handled conditional yes as well. eg no explicit yes, but asked a follow-up.
-% would language models know how to handle that?
-
-Lastly, we give an example of a \textsc{select} utterance,
-which communicates an intent to end the game.
+\noindent 
+The perceptual library functions, \texttt{is\_small}, \texttt{is\_grey}, and \texttt{is\_close}, are drawn from a manually-defined library.
+For \textsc{OneCommon}, we define these functions using domain-specific knowledge:
 
 \begin{Dialogue}
-    \Partner{Do you see a big black dot?}
-    \AgentSay{Yes, next to a small grey dot.}
-    \Partner{Let's select the small one.}
+\AgentDo{
+def is\_small(d): return d.size < -0.3
+}
+\end{Dialogue}
+
+\noindent We provide the full library for \textsc{OneCommon} in Appendix \ref{sec:library}.
+
+We utilize the code-generating abilities of large language models to generate the code representations of utterances.
+While LLMs are capable of generating entire code representations in a single prompt, the outputs are long.
+Long outputs result in a system that is too slow for real-time grounded dialogue.
+Practically, our system must therefore break down generation into a series of steps in order to reduce output length and increase execution speed.
+We give an example of one such decomposition for \textsc{OneCommon}:
+
+\textbf{Dialogue act} First, we classify partner utterances as one of three dialogue acts:
+The \textsc{start} of a new line of questions, a \textsc{follow-up} question, or a signal to end the game.
+
+\textbf{Refer} Second, given the dialogue act, we predict which turn the utterance is following up on, if any.
+For example, 
+
+\begin{Dialogue}
+    \AgentSay{Do you see a triangle?}
+    \Partner{Yes, next to a small grey dot.}
     \AgentDo{%
-      def turn(state):\newline
-      \strut~~for a,b in state:\newline
-      \strut~~~~~~if is\_small(dot)): state.add([b])\newline
-      \strut~~return state
+        dialogue act: \textsc{follow-up}\newline
+        refer: turn 1
     }
 \end{Dialogue}%
 
-\noindent Similar to the other dialogue acts,
-\textsc{select} utterances are parsed into a Python function
-which itself calls library functions.
-The \textsc{turn} function filters the state down to a list of single dots,
-which are the candidates for selection.
+\noindent The system is then able to infer the dots mentioned in the previous turn: \texttt{a,b,c}.
 
-\subsection{Plan}
-The belief state is used to construct the agent's next plan.
-The agent chooses a plan based on information gain \citep{lindley}.
-Ideally, the agent would optimize an objective based on both information gain and communicative cost or surprisal.
-Rather than directly optimize such an objective,
-we instead introduce task-specific constraints on plans and optimize information gain under those constraints.
-We provide the details in Section \ref{sec:implementation}.
+\textbf{Fragment generation} Third, we predict the number of new dots mentioned in the partner utterance alongside code fragments that express the semantics -- without the boilerplate code in the example above:
 
-\justin{In-depth questions are key to building common ground.
-In-depth questions without coreference are impossible to understand.
-Coreference without grounding is always incorrect.
-Symbolic planning on top of dialogue state tracking makes this possible.}
+\begin{Dialogue}
+    \Partner{Yes, next to a small grey dot.}
+    \AgentDo{%
+      1 new dot\newline
+      is\_small(d)\newline
+      is\_grey(d)\newline
+      all\_close([a,b,c,d])
+    }
+\end{Dialogue}%
 
-%Generation
-\subsection{Write}
-Given a plan, responses are generated with rule-based templates.
-Writing uses one simple template for each of the three dialogue acts,
-illustrated in Figure \ref{fig:system}.
-The system capitalizes on a special characteristic of cooperative two-player games: 
-we can control the trajectory of the conversation,
-allowing the system to only support a small subset of all possible dialogues.
-In practice, this could be extended to more flexible albeit higher latency response generation.
+\textbf{Stitch} Finally, we utilize a template to stitch all of this information back into the full code representation for execution.
 
-%Just describe what the method is.
-%Criticism 1: Only one dataset, how is the method generally applicable? May not need to mention this in the paper, but will come up in the rebuttal. Be upfront in limitation.
-%Criticism 2: Vision+language baseline.
+\section{Symbolic planning}
+The goal of collaborative reference games is to build common ground quickly and accurately.
+This requires solving two challenges: careful reasoning about what information has been gathered so far, as well as what to say next.
+Our system, \system{}, addresses both of these by planning in symbolic space,
+utilizing the symbolic representations produced by reading.
 
-\section{System details}
-\label{sec:implementation}
-This section provides the parameterization and implementation details of the system.
+We rely on a framework known as optimal experimental design, where agents reason probabilistically and choose the most informative plan by relying on a model of partner responses \citep{lindley,chaloner,dp}.
+Under this framework, the agent starts every turn with a prior belief over possible symbolic states, $p(z)$. The agent reads the previous partner utterance, obtaining the symbolic representation, $y$, to the agent's previous plan, $x$, then updates that belief recursively.
+This update relies on a partner model $p(y|x,z)$,
+which predicts the partner's symbolic response given state $z$ and plan $x$.
 
-\subsection{Read}
-\label{sec:read}
-%1) confirmation
-%2) Dialogue act classification.
-%3) Reference resolution and follow-up chains (slot carry-over). ;(Tree extension would be cool)
+Something about grounded models here, mentioning symbolic space.
 
-Intro sentence
+The belief update is then given by:
+\begin{equation}
+\label{eqn:update}
+p'(z) = p(z \mid x, y)
+= \frac{p(y \mid x,z)p(z)}{\sum_z p(y\mid x,z)p(z)}.
+\end{equation}
+Taking this posterior distribution to be our updated belief, $p'(z)$, the agent then decides whether to propose a new plan or signal to end the game.
 
-\textbf{Plan parsing}
-We prompt a large language model to obtain plans from utterances.
-For dialogue act and response classification, as well as
-cod generation, we use few-shot prompting.
-The examples in all prompts are constructed based loosely on
-5 dialogues from static \textsc{OneCommon} data collected by \citet{onecommon}.
+As the goal of reference games is to find a shared object, we utilize the following stopping rule: if the probability of any object is greater than hyperparameter $\theta$, select that object.
 
-For code generation, we craft 2 synthetic full multi-turn dialogue examples,
-with the goal of covering as many library functions as possible.
+Otherwise, the agent finds a new plan by optimizing expected information gain \citep{lindley}:
+\begin{equation}
+\label{eqn:eig}
+\argmax_x H[z] - \Es{y \mid x}{H[z \mid x,y]},
+\end{equation}
+where $H[z]$ is the entropy of the updated belief $p'(z)$\footnote{The belief entropy $H[z]$ in the definition of information gain is constant with respect to
+the plan $x$, and can be dropped from the objective.}
+and $H[z\mid x,y]$ the posterior after receiving imagined response $y$ to proposed plan $x$.
 
-\textbf{Library}
-Describe library design
 
-\textbf{Belief state and response model}
-The agent maintains a belief distribution over which of the 7
-dots are shared, represented as a distribution over boolean vectors of size 7.
-Maintaining and updating this belief distribution requires both a prior over shared dots
-and a response model.
-
-We utilize a globally normalized prior over boolean vectors.
-The prior's energy function is derived from the minimum spanning tree of the shared dots, where the weights of edges are determined by the ranking of how close dots are and the score of a tree is the sum of the weights of edges.
-We provide details in Appendix \ref{sec:prior}.
-We use the response model from \citep{ocp}, which explicitly accounts for perspective dependent ambiguity
-by including a confusion model that accounts for the partner mis-resolving dots due to differences in perspective.
-
-Given a prior, the agents updates its belief via Bayes' rule if the last plan is either confirmed or denied,
-and if the agent can resolve the partner's dot mentions.
-This means 
-
-\subsection{Plan}
-\label{sec:plan}
-Planning chooses the most informative dialogue act and set of dots to ask about, under a set of constraints.
-
-We choose between dialogue acts \textsc{start}, \textsc{follow-up}, and \textsc{select} based on informativity and the probability of successful coordination. If a dot is shared with probability above a particular threshold, the agent chooses to \textsc{select}.
-Otherwise, the agent chooses to \textsc{start} asking about 
-new dots or a \textsc{follow-up} question
-about an existing set based on information gain \citep{lindley}.
-
-We heuristically encode communication cost by constraining \textsc{start} questions to only ask about two dots, and \textsc{follow-up} questions
-to ask about a single new dot.
 
 \section{Experimental setup}
-\label{sec:exp}
+We conduct two experiments,
+evaluating \system{} on the \textsc{OneCommon} task.
+First, we perform human evaluation, evaluating how successful systems are when paired with unconstrained human partners who utilize linguistically diverse utterances and a range of strategies.
+Second, we perform selfplay, pairing systems with a copy of themselves to isolate strategic efficiency.
 
-We first conduct a preliminary study on reference resolution.
-We use simple template generations for partner utterances, asking if the agent sees a plan consisting of two dots,
-and evaluate whether different systems are able to accurately understand the generations.
-For this evaluation alone, the resolution system has the same view as the partner.
-We report the exact match accuracy of the resolved plan.
+\textbf{Hyperparameters}
+Throughout, \system{} uses a belief threshold hyperparameter $\theta = 0.8$
+and GPT-4\footnote{Specifically \texttt{gpt-4-0613}.} for reading \citep{gpt4}.
 
-Next, our primary form of evaluation is
+\textbf{Parameterization}
+The belief over symbolic states, $p(z)$,
+captures which dots are shared in \textsc{OneCommon}.
+We utilize a globally normalized model over all sets of dots,
+scoring each set based on the minimum spanning tree
+whose edge weights are determined by the rank of how close neighboring dots are.
+The partner 
+We additionally utilize the minimum spanning tree to constrain the response model, $p(y|x,z)$.
+The details of both models given in Appendix \ref{sec:parameterization}.
+
+\textbf{Baseline} We compare to the state-of-the-art baseline system of \citet{fried},
+
+\section{Experiments}
+This section reports the primary evaluations in \textsc{OneCommon}:
+human evaluation and selfplay.
+
+\textbf{Human evaluation}
+Our primary evaluation is
 human evaluation in \textsc{OneCommon} dataset \citep{onecommon},
-specifically game success with human partners.
-We also report the number of turns taken.
-We do not emphasize game length, as game length is at odds with overall success
-for conservative agents.
-\justin{num trials, payment}
+which measures game success with human partners.
+\system{} outperforms the baseline model of \citet{fried},
+but does not exceed human performance.
 
+\begin{table}[!t]
+\centering
+\begin{tabular}{lrrr}
+\toprule
+Agent                   & Success & Turns & Games\\
+\midrule
+\system{}               & 67.0\%  & 7.77 & 117\\
+\citet{fried}           & 56.5\%  & 6.66 & 96\\
+Human                   & 80.0\%  & 6.05 & 67\\
+\quad - expert          & 65.4\%  & 6.07 & 26\\
+\quad w/ expert         & 90.2\%  & 6.05 & 41\\
+\hline
+Human$^\dagger$         & 65.8\%  & 4.97\\
+\bottomrule
+\end{tabular}
+\caption{\label{tbl:human-eval}
+The success rate of different agents with human partners on the hardest setting of \textsc{OneCommon}, with 4 shared dots.
+A higher success rate is better.
+$^\dagger$ indicates the performance is from the \textsc{OneCommon} dataset
+\citep{onecommon}.
+}
+\end{table}
+
+\subsection{Selfplay}
 We also report success in selfplay, where agents play with a copy of themselves.
-Selfplay decreases the noise in evaluation due to linguistic and partner skill diversity.
+While selfplay only gives an imperfect proxy for how a system will perform with human partners, it eliminates the variance of human evaluations that is due to e.g., linguistic and partner skill diversity.
 
-%Analysis
-%Claim 1. Planning
-%Claim 2. Code
-%  Ablations on shorter prompts in terms of accuracy and speed. What works?
+Speculative: \system{} outperforms the original human performance in
+the \textsc{OneCommon} dataset,
+where humans were coached in order to improve data quality \citep{onecommon}
+(also cite personal communication with Udagawa).
+Speculative: \system{} takes more turns on average, but
+has a higher success rate.
+We hypothesize that this is caused by shorter human partner
+responses to the system.
+The average number of words per utterance when playing with \system{} is \justin{XX},
+as opposed to \justin{YY} when partnered with another human.
 
 \textbf{Systems}
-For reference resolution, we compare
-\system{} versus a code-generation system with visual components ViperGPT \citep{vipergpt},
-a visual question-answering system BLIP2 \citep{},
-and the previous state of the art for \textsc{OneCommon} RNN \citep{fried}.
-
-For human evaluation, we compare \system{}
-versus the previous state of the art RNN \citep{fried} as well as
-human agents, with a human partner.
-
 For selfplay, we consider a wider variety of systems than human evaluation, due the reduced cost of evaluation.
 We compare \system{} to RNN \citep{fried},
 a prompt-based text-only language model baseline,
 ViperGPT \citep{vipergpt},
-and BLIP2 \citep{}.
-We also run smaller-scale ablations of the planning
+and BLIP2 \citep{blip2}.
 
-\textbf{Hyperparameters}
-For the Partner Planner, we set the response faithfulness probability $\theta = 0.95$.
-We determine the selection entropy threshold by running grid search over $\tau \in \set{1,1.5,2}$ on symbolic selfplay, and pick the value with the highest success rate.
+\begin{table}[!t]
+\centering
+\begin{tabular}{lrr}
+\toprule
+Agent                   & Success & Avg \# turns\\
+\midrule
+\system{}$$             & 84.0\% & 4.83\\
+\citet{fried}           & 63.5\%  & 3.31\\
+%GPT4                    & \%      & \\
+%ViperGPT                &         & \\
+\hline
+Human$^\dagger$         & 65.8\%  & 4.97\\
+\bottomrule
+\end{tabular}
+\caption{\label{tbl:selfplay}
+The success rate of different agents in 200 selfplay games on the hardest setting of \textsc{OneCommon}, with 4 shared dots.
+A higher success rate is better.
+The human performance is from the \textsc{OneCommon} dataset
+\citep{onecommon}.
+}
+\end{table}
 
-The partner response classifier is a RoBERTa model \citep{roberta}, with a second stage of fine-tuning performed on 147 annotated dialogue turns.
-We annotate the text each turn as a confirmation, denial, or no response.
-The model is originally fine-tuned on sentiment \citep{heitmann2020}.
+A similar pattern from human evaluation holds in selfplay,
+where \system{} outperforms all other systems and humans.
+Additionally, the results from reference resolution are also reflected in selfplay,
+as ViperGPT and BLIP2 have low success rates due to grounding errors.
 
-For mention classification from text, we use a mention prediction network from past work \citep{fried}.
-The mention prediction network explicitly models relationships between mentions using a conditional random field with neural potentials.
+The average number of turns per game of \system{} is more comparable 
+to the average for human-human games, likely due to \system{}
+being constrained to ask a new question at every turn.
 
-\section{Results}
+\section{Analysis}
+This section presents further analysis on planning, prompting for code generation, and reference resolution.
+
+\subsection{Human evaluation analysis}
+
+\begin{table}[!t]
+\centering
+\begin{tabular}{lr}
+\toprule
+Agent                    & Avg partner utt len\\
+\midrule
+\system{}                &  6.95 \\
+\citet{fried}            & 9.62  \\
+Human                    & 15.06  \\
+\bottomrule
+\end{tabular}
+\caption{\label{tbl:refres}
+Average partner utterance length for different systems in human evaluation.
+}\end{table}
+
+
+
+
+\subsection{Plan analysis}
+We present qualitative examples of plans generated by \system{}, as well as \citet{fried} in Figure \ref{fig:plans}.
+We explore two settings: The first is.
+The second is.
+
+As \system{} performs symbolic belief updates and directly optimizes information gain,
+the system is more responsive and cohesive, compared to the model from prior work \citep{fried}.
+In the all-yes setting, \system{} does X, whereas the baseline does Y.
+In the alternating setting, \system{} does X, whereas the baseline does Y.
+
+\subsection{Prompt analysis}
+We explore different prompting styles for reading in \system{}.
+\system{} uses a sequence of two prompts for parsing plans:
+the dialogue act and new dots are classified,
+then code fragments.
+Those fragments fill in a templated Python function,
+which is then given an argument based on a backpointing heuristic.
+\daniel{need to say more about ``backpointing heuristic''}
+We explore an alternative method of prompting, that prompts
+a code-generating system to directly produce the final Python function,
+as well as the backpointer, in a single prompt
+
+
+We present the results on reference resolution,
+employing the same template generations from Section \ref{sec:refres}.
+
+\begin{table}[!t]
+\centering
+\begin{tabular}{lrrr}
+\toprule
+Prompt style                   & Acc     & Time (s) & Len\\
+\midrule
+\system{}                      & 57/75  & 10    &  234\\
+Single prompt                  & 63/75  & 48    &    \\
+\bottomrule
+\end{tabular}
+\caption{\label{tbl:prompt}
+An analysis of different code generation prompt styles.
+}
+\end{table}
+
+In Table \ref{tbl:prompt}, we see that the two prompting styles achieve similar accuracy, but have a large difference in time as well as output length.
+The single prompt system must contain the generated code for every utterance, including agent utterances.
+This was avoided in \system{}, resulting in large slowdowns.
+
+\textbf{Ideally use other systems too}
+gpt 3.5, bard, starcoder?
+\daniel{Maybe starcoder if it isn't terrible, but I don't see much advantage to having two proprietary systems}
+
+
+\subsection{Reference resolution}
+\label{sec:refres}
+We first conduct a preliminary study on generalization in reference resolution, validating our approach to reading.
+We evaluate whether different systems are able to accurately understand templated descriptions of pairs of dots, providing an upper bound on the generalization ability of reference resolution systems.
+A system that is unable to resolve references to pairs of dots is unlikely to generalize to more complex configurations.
+%\daniel{Can you motivate why we do this rather than use human-written language?}
+Template generations take two dots, chosen as a plan from \system{},
+and describes the sizes and colors of those two dots, as well as the relative positions.
+For this evaluation alone, the resolution system has the same view as the partner,
+a departure from the standard partial overlap setting in \textsc{OneCommon}.
+We report the exact match accuracy of the resolved plan for 25 examples.
+\justin{for now, will extend. also have results for follow-up + select.}
+
+\textbf{Systems}
+We compare \system{} to ViperGPT, a visual grounding system that uses code as a representation \citep{vipergpt},
+\daniel{I'd describe this as a visual grounding system that uses code as representation, or describe ViperGPT and BLIP2 as both strong VQA systems, one of which uses code as a representation}
+BLIP2, a strong visual question-answering and captioning system \citep{blip2},
+and the previous state of the art for \textsc{OneCommon} RNN \citep{fried}.
 
 \begin{table}[!t]
 \centering
@@ -673,17 +635,15 @@ BLIP2                    & \%  \\
 \bottomrule
 \end{tabular}
 \caption{\label{tbl:refres}
-Reference resolution
+Reference resolution accuracy on template generations.
 }
 \end{table}
 
-\textbf{Reference resolution}
 We find that vision-based models as well as 
 language-only models are much less accurate than
-a code-based grounding approach for this task,
+our code-based grounding approach for this task,
 shown in Table \ref{tbl:refres}.
-We hypothesize that this is due to out-of-domain images
-and reasoning difficulty respectively.
+We hypothesize that this is due the visual context in \textsc{OneCommon} being to out-of-domain for most image models.
 We also find that the previous state-of-the-art approach,
 RNN \citep{fried}, has difficulty recognizing simple utterances.
 We hypothesize that this is also caused by distribution shift:
@@ -692,175 +652,17 @@ language descriptions as well as the distribution of dots
 preferred by the human demonstrations it was trained on,
 resulting in failure to generalize to simple 2-dot combinations.
 The code-generation approach does not have this issue,
-as it only captures information in language descriptions
-rather than the marginal dot configuration reference distribution.
+as it only captures information in the utterance
+rather than what dots were described during training.
+\daniel{This makes it sound like we're testing our system on easier examples than we'd actually get from people. Are the plans you use here chosen from a fairly unconstrained set? if so, can you emphasize this being the source of the generalization, rather than the plans being simpler?}
 
-\textbf{Human evaluation}
-Speculative: \system{} outperforms the original human performance in
-the \textsc{OneCommon} dataset,
-where humans were coached in order to improve data quality \citep{onecommon}
-(also cite personal communication with Udagawa).
-Speculative: \system{} takes more turns on average, but
-has a higher success rate.
-We hypothesize that this is caused by shorter human partner
-responses to the system.
-The average number of words per partner utterance when playing with
-\system{} is XX, as opposed to YY with another human.
-
-\begin{table}[!t]
-\centering
-\begin{tabular}{lrr}
-\toprule
-Agent                   & Success & Avg \# turns\\
-\midrule
-\system{}               & 75.0\%        & 7.\\
-GPT4                    & \%  & \\
-Human                   & 65.8\%  & 4.\\
-\citet{fried}           & 62.4\%  & \\
-\bottomrule
-\end{tabular}
-\caption{\label{tbl:human-eval}
-The success rate of different agents with human partners on the hardest setting of \textsc{OneCommon}, with 4 shared dots.
-A higher success rate is better.
-The human performance is from the \textsc{OneCommon} dataset
-\citep{onecommon}.
-}
-\end{table}
-
-\textbf{Selfplay}
-A similar pattern holds in selfplay,
-where \system{} outperforms all other systems and humans.
-Analysis TBD.
-
-The average number of turns per game of \system{} is more comparable 
-to the average for human-human games, likely due to \system{}
-being constrained to ask a new question at every turn.
-
-\begin{table}[!t]
-\centering
-\begin{tabular}{lrr}
-\toprule
-Agent                   & Success & Avg \# turns\\
-\midrule
-\system{}               & 78.43\% & 4.94\\
-GPT4                    & \%      & \\
-Human                   & 65.8\%  & 4.97\\
-\citet{fried}           & 62.4\%  & \\
-BLIP 2                  &         & \\
-ViperGPT                &         & \\
-\bottomrule
-\end{tabular}
-\caption{\label{tbl:selfplay}
-The success rate of different agents in selfplay on the hardest setting of \textsc{OneCommon}, with 4 shared dots.
-A higher success rate is better.
-The human performance is from the \textsc{OneCommon} dataset
-\citep{onecommon}.
-}
-\end{table}
-
-\justin{complete garbage below here, haven't finished un copy-pasting.}
-
-\section{Analysis}
-We present additional analysis experiments in this section.
-
-\justin{need to compare our system to the 
-second best thing.}
-
-\textbf{Static reference resolution}
-worry: if make claim that bad at refres, might be hard for reviewers to understand. How strong is the code generation system at understanding normal text?
-Static reference resolution results, comparison to Fried baseline.
-Conclusion: Not strong, but due to the 2-player nature of the game,
-able to steer the conversation.
-Makes intentional planning even more important (avoid weaknesses / ambiguity).
-
-
-\textbf{Prompt style analysis}
-Length of prompts and number of roundtrip errors.
-
-\begin{table}[!t]
-\centering
-\begin{tabular}{lrrr}
-\toprule
-Prompt style                   & Acc & Time & Len\\
-\midrule
-\system{}                      & \%  &    &  \\
-Single prompt                  & \%  &    & \\
-Shorter                        & \%  &    &  \\
-\bottomrule
-\end{tabular}
-\caption{\label{tbl:prompt}
-An analysis of different code generation prompt styles.
-}
-\end{table}
-
-\textbf{Use a different system}
-s/gpt4/starcoder?
-s/gpt4/gpt3.5?
-
-\textbf{Follow-up vs just describe everything}
-See if follow-up heuristic vs info gain surprises user.
-
-\textbf{Static plan evaluation}
-Directly modeling and marginalizing over unobserved partner perspective results in fewer
-errors than the egocentric heuristic from \citet{fried}, obtaining a 12\% reduction in errors as shown in Table \ref{tbl:static-plans}.
-Additionally, the number of incorrectly resolved plans from Planner is much lower than an ablated planner that does not model unshared dots, a 72\% reduction.
-
-We hypothesize that the baseline model of \citet{fried} makes fewer errors because it is able to repeat plans mentioned in the static dialogue.
-The Partner Planner does not often repeat plans, as there is little information gained.
-When restricted to the plan proposals from the first turn of a static human-demonstrated dialogue, where no plans can be copied, the Partner Planner outperforms the baseline by a larger margin, as shown in Table \ref{tbl:static-plans}.
-
-We note that the absolute number of resolution errors is small relative to the total number of turns.
-We hypothesize that this is because of the nature of static evaluation.
-Static evaluation considers next step plan proposals given human dialogue,
-preventing agents from steering the dialogue themselves.
-
-\begin{table}[!t]
-\centering
-\begin{tabular}{lrr}
-\toprule
-Agent                   & Success & Avg \# turns\\
-\midrule
-\system{}               & \%        & \\
-GPT4                    & \%  & \\
-Human                   & \%  & \\
-\citet{fried}           & 62.4\%  & \\
-Human                   & 65.8\%  & 4.97\\
-\bottomrule
-\end{tabular}
-\caption{\label{tbl:selfplay}
-The success rate of different agents in selfplay on the hardest setting of \textsc{OneCommon}, with 4 shared dots.
-A higher success rate is better.
-The human performance is from the \textsc{OneCommon} dataset
-\citep{onecommon}.
-}
-\end{table}
-
-\textbf{Symbolic selfplay}
-The Partner Planner achieves strong performance in symbolic selfplay, as shown in Table \ref{tbl:selfplay}.
-The ablated version, which does not model unshared dots, also performs well, but worse than the full Partner Planner.
-This demonstrates the utility of modeling unshared perspective.
-
-Both the full and ablated Partner Planner outperform the baseline of \citet{fried} and coached human performance from the training data of \citet{onecommon}, demonstrating the utility of partner modeling.
-Much of this success comes from the ability to control the
-belief entropy selection heuristic, as shown by the performance of the ablated Partner Planner over human performance.
-The selection heuristic encourages the Partner Planner to be more patient and gather more information before selecting than most human participants,
-reflected in the average number of turns per game.
-
-\section{Future Work}
-%\textbf{Incorporate language, discuss fidelity and OOD-ness for generation/resolution}
-%\textbf{Extension to \textsc{MutualFriends}}
-For future work, the current model will be extended with text generation in order to play \textsc{OneCommon} with humans.
-Preliminary experiments using utterance generation methods from prior work by \citet{fried} found that the plans proposed by the Partner Planner were out-of-distribution for supervised methods, resulting in many errors in generation.
-Further experiments with a templated generation system found that the resulting templates were too difficult to understand for human partners.
-Future work will experiment with generation systems that account for utterance processing cost, balancing the amount of information conveyed and fluency.
-
-Additionally, the scalability of the method will be tested on dialogue games with larger environments.
-
+\section{Conclusion}
+\justin{TBD}
 %\section{Conclusion}
 %TBD
 
 \section*{Acknowledgements}
-Ge Gao, Omer Gul, Woojeong Kim, Celine Lee, Jack Morris, Chenran Ning, Alane Suhr, Nicholas Tomlin, Jiawei Zhou.
+Vivian Chen, Ge Gao, Omer Gul, Sedrick Keh, Woojeong Kim, Celine Lee, Jack Morris, Chenran Ning, Jacob Sharf, Alane Suhr, Nicholas Tomlin, Anne Wu, Jiawei Zhou.
 
 \section*{Limitations}
 There is a tradeoff between expressivity and  controllability for dialogue partner modeling.
@@ -876,9 +678,251 @@ particular partner aspects may affect fairness and equity with a diverse pool of
 
 \appendix
 
+\subsection{Symbolic planning with information gain}
+\justin{take out of bckgurnd and put to meth}
+A common framework for approximately solving reference games is information gain, otherwise known as optimal experimental design, where agents choose the most informative action \citep{lindley,chaloner,dp}.
+This framework has been utilized in recent works on multi-turn, asymmetric reference games similar to 20 questions or \textsc{Guess Who?},
+where the agent is restricted to asking questions and the partner to answering \citep{yu2019info,white-etal-2021-open,rao2018q}.
+%\daniel{Consider using a different term rather than ``optimal experiment design'' to follow the NLP papers above, and maybe say it's like 20 questions}
+In this section, we describe its application to collaborative reference games, where both the agent and partner are unrestricted.
+
+Every turn, the agent starts with a belief over which objects are shared, $p(z)$, where each $z$ is a set of objects. The agent reads the previous partner utterance to resolve what objects they mentioned, $o$, as well as any responses, $y$, to previous agent mentions $x$.
+The agent then plans by finding the set of objects to describe that is most informative about what objects are shared.
+
+\textbf{Belief update} 
+Given objects the partner mentioned, $o$, the agent updates their belief over shared objects:
+\begin{equation}
+\label{eqn:update-mention}
+p(z \mid o)
+= \frac{p(o | z)p(z)}{\sum_z p(o | z)p(z)},
+\end{equation}
+filtering out shared states $z$ that do not contain the mentioned objects.
+
+The partner may also respond to agent mentions described in the preceding turn, resulting in a similar belief update.
+We denote the agent's mentions as $x$, and the partner's response as $y$:
+\begin{equation}
+\label{eqn:update}
+p(z \mid x, y)
+= \frac{p(y \mid x,z)p(z)}{\sum_z p(y\mid x,z)p(z)},    
+\end{equation}
+upweighting states $z$ where the response $y$ is likely under the partner response model $p(y|x,z)$.
+
+\textbf{Planning} The belief update gives us a new belief which is then used for planning.
+Planning finds the agent mentions that maximize the expected information gain \citep{lindley} about belief $z$,
+\begin{equation}
+\label{eqn:eig}
+\argmax_x H[z] - \Es{y \mid x}{H[z \mid x,y]},
+\end{equation}
+where $H[z]$ is the entropy of the belief\footnote{The belief entropy $H[z]$ in the definition of information gain is constant with respect to
+the plan $x$, and can be dropped from the objective.}
+ and $H[z\mid x,y]$ the posterior after receiving response $y$ to mention $x$.
+
+\textbf{Selection} After gathering information through planning and
+incorporating information through belief updates,
+the agent must decide when it has built enough common ground via a stopping rule,
+collaboratively selecting a shared object with its partner.
+Stopping rules can be solved exactly via dynamic programming or implemented heuristically.
+%\daniel{how does it decide?}
+
+\section{Method}
+Our approach to reference games follows the expected information gain framework.
+Our system, \system{}, separates symbolic plans from language,
+allowing explicit steering.
+As the goal of \textsc{OneCommon} is to reason about shared dots,
+a set of dots is a natural plan representation.
+Given this representation, reading consists of mapping from utterances to the set of dots that are mentioned, and planning means finding the set of dots to ask about next via information gain.
+\justin{Need to link back to contributions: top-down implies contribution down}
+\justin{too much structure. no hopping from text to examples}
+
+\subsection{Reading as code generation}
+The goal of reading in \system{} is to obtain a symbolic representation of an utterance, which can then be used in planning.
+In \textsc{OneCommon}, we need to resolve sets of dots that are mentioned both explicitly and implicitly. For example, the partner's utterance in
+
+\begin{Dialogue}
+    \AgentSay{Do you see a triangle?}
+    \Partner{$\underbrace{\text{Yes}}_{\text{\normalfont response}}$, $\underbrace{\text{next to a small grey dot}}_{\text{\normalfont mention}}$.}
+\end{Dialogue}%
+
+\noindent mentions all dots in the triangle as well as the small grey dot, even though the triangle was elided and not explicitly mentioned.
+Additionally, \system{} must also understand responses to previous agent mentions, e.g. the `Yes' in the above example.
+
+\system{} accomplishes this via a 3-step process:
+Partner responses are classified, 
+the system predicts the dialogue act of the partner utterance,
+and finally, a code representation of the utterance given the dialogue act.
+We make the simplifying assumption that the responses are binary \textsc{yes}/\textsc{no}, and consider 3 coarse dialogue acts related to referring expressions:
+the \textsc{start} of a line of questioning,
+\textsc{follow-up} questions that continue a line of questioning,
+and finally \textsc{select} an object.
+
+\textbf{Code generation}
+Mentions are resolved by translating utterances into code, then executing that code.
+The code is intended to express and execute the underlying task-specific semantics of an utterance.
+%\justin{Why code? handle novel grounding and easily compose with previous mentions}
+Code allows the system to handle novel grounding, given a suitable underlying base library of functions,
+as well as easily compose the current utterance's meaning with previous turns.
+
+Following Code-as-Policies \citep{codeaspolicies2022},
+code generation relies on a base library and a code-generating language model.
+We design a library of 40 constraint functions that cover dot sizes and colors, as well as spatial relationships between dots such as \texttt{is\_left}, \texttt{is\_triangle}, and \texttt{is\_close}. We provide all functions and their implementations in Appendix \ref{} or supplementary material.
+
+We provide examples of generated code for utterances corresponding to each dialogue act below.
+
+\textbf{Example: \textsc{start}} Our first example is \textsc{start}:
+
+\begin{Dialogue}
+    \Partner{Do you see a black dot?}
+    \AgentDo{%
+      def turn(state):\newline
+      \strut~~state = set()\newline
+      \strut~~for a in single\_dots():\newline
+      \strut~~~~if is\_dark(a): state.add([a])\newline
+      \strut~~return state
+    }
+\end{Dialogue}%
+
+\noindent The function loops over all individual dots, returned by the
+\texttt{single\_dots()}, and returns the set of all singleton dark dots.
+As a convention, the \texttt{turn} function also takes a \texttt{state} argument,
+which is used to build on the results of previous turns.
+We will see an example of this in the next example.
+As this is a \textsc{start} utterance, the argument \texttt{state} is not used.
+
+\textbf{Example: \textsc{Follow-up}} Next, we have
+
+\begin{Dialogue}
+    \Partner{Do you see a big black dot?}
+    \AgentSay{Yes, next to a small grey dot.}
+    \Partner{I don't see that, but is there a light dot to the left of the black one?}
+    \AgentDo{%
+      def turn(state):\newline
+      \strut~~for a, in state:\newline
+      \strut~~~~for b in single\_dots():\newline
+      \strut~~~~~~if (\newline
+      \strut~~~~~~~~is\_light(b)\newline
+      \strut~~~~~~~~and is\_left(b, a)\newline
+      \strut~~~~~~~~and is\_dark(a)\newline
+      \strut~~~~~~):\newline
+      \strut~~~~~~~~state.add([a,b])\newline
+      \strut~~return state
+    }
+\end{Dialogue}%
+
+\noindent This utterance denies the plan of the previous turn 
+and instead builds upon the plan from the first turn, adding a new dot.
+As a result, when executing this function,
+we must resolve the correct value of \texttt{state} to pass in, the output of a previous turn.
+Similar to \citet{sm}, we utilize a task-specific heuristic for resolving \texttt{state}.
+We define \texttt{state} as the set of dots considered in the last confirmed turn,
+a naive form of backtracking. We also present experiments that use a large language model to predict backpointers in Section \ref{sec:experiments}.
+
+\textbf{Example: \textsc{Select}} Lastly, we give an example of a \textsc{select} utterance,
+which communicates an intent to end the game.
+
+\begin{Dialogue}
+    \Partner{Do you see a big black dot?}
+    \AgentSay{Yes, next to a small grey dot.}
+    \Partner{Let's select the small one.}
+    \AgentDo{%
+      def turn(state):\newline
+      \strut~~for a,b in state:\newline
+      \strut~~~~~~if is\_small(dot)): state.add([b])\newline
+      \strut~~return state
+    }
+\end{Dialogue}%
+
+\noindent The \textsc{turn} function of a \textsc{select} utterance filters the state down to a list of single dots, the candidates for selection.
+
+
+\textbf{Prompting}
+We implement each step of reading using few-shot prompting with large language models, which has shown effective for semantic parsing \citep{shin-etal-2021-constrained}.
+Partner utterance response classification and dialogue act classification both utilize few-shot prompts.
+The dialogue act classification prompt additionally predicts the number of new dots mentioned for 
+\textsc{start} and \textsc{follow-up} utterances, as well as the selected dot for \textsc{select} utterances. This aids in subsequent code generation.
+
+Given the dialogue act,
+we translate utterances such as ``Do you see a big black dot'' into a series of constraints expressed as Python functions:
+
+\begin{Dialogue}
+    \Partner{Do you see a big black dot next to a light one?}
+    \AgentDo{%
+      2 new dots\newline
+      is\_dark(a)\newline
+      is\_large(a)\newline
+      is\_light(b)
+    }
+\end{Dialogue}%
+
+\noindent Given these code fragments, we use a template to 
+construct the full \texttt{turn} function shown in the examples above.
+\justin{say how this is done (template)}
+
+
+\subsection{Symbolic planning}
+After reading, the agent updates its belief then plans what to say next.
+\justin{Chronological is bad. second part of the module is understanding what to say, in this way. give motivations and objectives. what part of process it has to handle. need to setup the goals and accomplish them, link back to contribs}
+
+In each turn, the agent can update its belief over shared objects twice after reading.
+First, if the partner responded to the agent's last plan,
+and second, if the partner mentioned a plan that the agent sees.
+In the first case, the belief update simply follows Equation \ref{eqn:update}.
+In the second case, the belief update is similar, but the agent only updates their belief if the agent response is \textsc{yes}.
+
+Once updated, the new belief is used to construct the agent's next plan.
+The agent first decides whether to confirm or deny the dots in the partner plan,
+then chooses the dialogue act and the agent's own dot plan jointly.
+The choice of dot plan follows the optimal experiment design framework 
+in Equation \ref{eqn:eig}, with some modifications.
+
+Ideally, the agent would optimize an objective based on both information gain and communicative cost or surprisal.
+Rather than directly optimize such an objective,
+we instead introduce task-specific constraints on dot plans and optimize information gain under those constraints.
+
+
+We choose between dialogue acts, \textsc{start}, \textsc{follow-up}, and \textsc{select}, based on informativity and the probability of successful coordination. If a dot is shared with probability above a belief threshold hyperparameter, $\theta$, the agent chooses to \textsc{select}.
+Otherwise, the agent chooses to \textsc{start} asking about 
+new dots or a \textsc{follow-up} question
+about an existing set based on the expected information gain.
+We heuristically encode communication cost by constraining \textsc{start} questions to only ask about at most two dots, and \textsc{follow-up} questions
+to ask about a single new dot.
+
+\textbf{Parameterization}
+We build on the prior and partner model proposed by \citet{ocp},
+who utilize a uniform prior over shared objects, $p(z)$,
+and a response model $p(y|x,z)$ that takes into account the partner's
+unobserved perspective.
+
+We extend their approach by proposing a globally normalized model over the powerset of dots
+that takes into account how close dots are together.
+Each subset of dots is scored based on a minimum spanning tree,
+whose weights are determined by how close dots are.
+We additionally utilize the minimum spanning tree to constrain the response model, $p(y|x,z)$.
+The details of both models given in Appendix \ref{sec:parameterization}.
+
+%Generation
+\textbf{Writing}
+Plans are described using rule-based templates.
+Writing uses one simple template for each of the three dialogue acts,
+given in Appendix \ref{sec:templates}.
+In practice, this could be extended to more flexible albeit higher latency response generation.
+
+
 %\section{Templated generation}
 %\label{sec:generation}
 %TBD
+
+\section{Blah}
+\textbf{Belief state and response model}
+The agent maintains a belief distribution over which of the 7
+dots are shared, represented as a distribution over boolean vectors of size 7.
+Maintaining and updating this belief distribution requires both a prior over shared dots
+and a response model.
+
+We utilize a globally normalized prior over boolean vectors.
+The prior's energy function is derived from the minimum spanning tree of the shared dots, where the weights of edges are determined by the ranking of how close dots are and the score of a tree is the sum of the weights of edges.
+We provide details in Appendix \ref{sec:prior}.
+We use the response model from \citep{ocp}, which explicitly accounts for perspective dependent ambiguity
+by including a confusion model that accounts for the partner mis-resolving dots due to differences in perspective.
 
 
 \section{Partner Modeling in Reference Games}

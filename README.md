@@ -1,1 +1,0 @@
-# onecommon-gpt-writing

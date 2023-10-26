@@ -5,7 +5,8 @@
 \documentclass[11pt]{article}
 
 % Remove the "review" option to generate the final version.
-\usepackage[review]{EMNLP2023}
+%\usepackage[review]{EMNLP2023}
+\usepackage{EMNLP2023}
 
 % Standard package includes
 \usepackage{times}
@@ -104,7 +105,7 @@
 % and set <dim> to something 5cm or larger.
 
 \title{
-Integrating Symbolic Planning and \\ Code Generation
+Symbolic Planning and Code Generation
 for Grounded Dialogue
 }
 
@@ -136,6 +137,10 @@ Cornell University \\
 Derek Chen \\
 Columbia University \\
 \texttt{dc3761@columbia.edu}
+\AND
+Saujas Vaduguru \\
+Carnegie Mellon University \\
+\texttt{svadugur@andrew.cmu.edu}
 \And
 Alexander M. Rush \\
 Cornell Tech \\
@@ -279,7 +284,7 @@ We evaluate our \system{} system on the most challenging subset of the \textsc{O
 Prior work on collaborative reference games focuses on building common ground
 \citep{mf,pb,pip}.
 Prior work by \citet{fried} implements an approximation of pragmatic reasoning on \textsc{OneCommon}, but plans in language space and utilizes supervised models for mapping language to symbols.
-\citet{pip} plan in symbolic space, but without natural language. 
+\citet{pip} plan in symbolic space, but without natural language.
 We plan in symbolic space and map from language to symbols via code generation.
 
 Dialogue systems have a long history of reasoning with symbolic actions.
@@ -295,7 +300,7 @@ planning directly in text,
 where systems either perform roll-outs, tree-search, or other forms of intermediate reasoning in language.
 This allows system designers to avoid manually defining symbolic actions \citep{yarats2017rollout,jang2020bapomdp,gandhi2023strategic}.
 However, the accuracy of language-space planners is still low in many settings \citep{fried,valmeekam2023planning}.
-We focus on symbolic planning, where planning is defined in a space that ensures accuracy and controllability. %is correct and controllable by construction.
+We focus on symbolic planning, where planning is defined in a space that ensures accuracy and controllability.
 
 With the recent progress in large language modeling,
 code generation for modular grounded systems has quickly gained interest.
@@ -307,9 +312,7 @@ by generating Python code that makes calls to lower-level perception libraries
 This extends prior work on executable semantic parsing \citep{liang2016learning,johnson2017inferring,cheng2018learning} with large language models.
 Concurrent work has also utilized code-generation to interpret language, integrated with symbolic reasoning \citep{wong2023word}.
 We apply these advances to the setting of grounded task-oriented dialogue,
-where code generation grounds language to symbolic actions for use in
-explicit planning.
-
+where code generation grounds language to symbolic actions for use in explicit planning.
 
 \section{Overview: Reference Games}
 Collaborative reference games
@@ -317,10 +320,11 @@ pair an agent and a partner in order to build common ground through natural lang
 Mirroring realistic scenarios, many reference games are also partially observable,
 where the agent and partner have different perspectives, and so they must resolve ambiguity.
 
-\textsc{OneCommon}~\citep{onecommon}, as shown in Figure \ref{fig:oc}, is a reference game
-where the agent and partner see different but overlapping views of a set of dots, and the goal is to find and select one dot common to both players' views.
-\textsc{OneCommon} is particularly difficult due to its partial observability and visual context.
-The contexts in \textsc{OneCommon} were constructed to make referring expressions challenging, with continuous-valued sizes, shades, and positions of dots.
+\textsc{OneCommon}~\citep{onecommon}, as shown in Figure \ref{fig:oc}, is a reference game that exemplifies two challenges: grounding and planning.
+In \textsc{OneCommon}, the agent and partner see different but overlapping views of a set of dots, and the goal is to find and select one dot common to both players' views.
+Grounding in \textsc{OneCommon} is particularly difficult due to the dot-based visual context, which requires abstract spatial reasoning.
+Planning is complicated by the partial observability caused by differing perspectives, which require agents to use complex referring expressions in order to avoid ambiguity.\footnote{The contexts in \textsc{OneCommon} were constructed to make referring expressions challenging and context-dependent. For example, if the agent sees only light dots, a relatively `dark' dot for the agent may not be considered dark at all by the partner.\textsc{OneCommon} is an ideal testbed for pragmatic methods that reason about contextual meaning. While our approach does not address pragmatics, we hope future work will.}
+We focus on \textsc{OneCommon} due to its simplicity and difficulty.
 
 Our approach to grounded reference games separates symbolic reasoning from language, allowing explicit steering.
 Our system, Symbolic Planning and Code-generation (\system{}), breaks down a turn into three procedures: reading, planning, and writing.
@@ -334,20 +338,19 @@ The agent then \textbf{plans} in symbolic space.
 The system uses reasoning to update its belief state, $p(z|u)=\sum_x p(z|x)p(x|u)$,
 then produces a response $y^*$ of what to say next, which it describes in language to the partner. There is additionally a templated write module for generating a response from $y^*$ described in Appendix~\ref{sec:templates}.
 
-In \textsc{OneCommon}, given a set of dots $\mcD$, the state $z \in \{0, 1\}^{|\mcD|}$ represents which dots, the agent believes, are contained (1) and not contained (0) in the partner's view, illustrated in Figure \ref{fig:system}. We call a (sub)set of dots a \textit{configuration}.
-The action representation of partner and agent utterances alike is also a configuration, as well as any answers or confirmations to previous questions.
-We use $x, x', y^* \in \{0, 1\}^{|\mcD|}$ as the configuration in the partner's action, previous partner action, and agent action respectively.
+In \textsc{OneCommon}, given a set of dots $\mcD$, the state $z \in \{0, 1\}^{|\mcD|}$ represents which dots the agent believes are contained (1) and not contained (0) in the partner's view, illustrated in Figure \ref{fig:system}. We call a set of dots a \textit{configuration}.
+The action representation of partner, $x$ and $x'$, and agent utterances, $y^*$, alike is also a configuration in $\{0,1\}^{|\mcD|}$, as well as any answers or confirmations to previous questions.
 
 \section{Reading: From Language to Symbols}
 \label{sec:reading}
-Reading in \system{} requires interpreting utterances to a grounded symbolic action, which in turn facilitates the planning stage. Consider an the following exchange:
-\vspace{-0.15em}
+Reading in \system{} requires interpreting utterances to a grounded symbolic action, which in turn facilitates the planning stage. Consider the following exchange:
+\vspace{-0.5em}
 
 \begin{Dialogue}
     \AgentSay{Do you see a triangle of dark dots?}
     \Partner{Yes, is there a small grey one below it?}
 \end{Dialogue}%
-\vspace{-0.5em}
+\vspace{-1em}
 
 Reading has several challenges. First, reading requires grounding utterances in context, e.g. the shapes and relations. Second, utterances are compositional. For example, the partner utterance builds on top of the previous utterance through coreference.
 Finally, a reading system must act quickly, as real-time dialogue systems require reasonable response times.
@@ -355,7 +358,7 @@ Finally, a reading system must act quickly, as real-time dialogue systems requir
 \subsection{Code Generation}
 \label{sec:code-generation}
 
-In \system{}, reading is implemented as code generation. Given a dialogue, we generate Python code which is then used as a meaning function to produce a distribution over all valid interpretations of the utterance's symbolic action (\autoref{fig:codegen}).
+In \system{}, reading is implemented as code generation. Given a dialogue, we generate Python code\footnote{We target Python as our code representation since it is well-understood by large language models. However, in principle, our system could target other languages such as Prolog or SQL.} which is then used as a meaning function to produce a distribution over all valid interpretations of the utterance's symbolic action (\autoref{fig:codegen}).
 The code calls perceptual library functions with grounded semantics, drawn from a task-specific API.
 This perceptual library allows the system to both ground elements of the utterance and compositionally build upon previous utterances. Consider the following abbreviated example, based on \textsc{OneCommon}:
 
@@ -405,7 +408,7 @@ def is\_small(d): return d.size < -0.3
 \end{Dialogue}
 \vspace{-1em}
 
-\noindent We provide the examples from the \textsc{OneCommon} perceptual library in Appendix \ref{sec:library}.
+\noindent The perceptual library for \textsc{OneCommon} can be found \href{https://github.com/justinchiu/onecommon-gpt/tree/main/oc/fns}{here}.
 
 \begin{figure}
 \vspace{0.39em}
@@ -424,7 +427,9 @@ The generated meaning function for utterance $u$ takes the previous symbolic act
 Reading is implemented with large language model (LLM) code generation.
 While LLMs can generate accurate code, full code specifications (\autoref{sec:code-generation}) are lengthy and therefore too slow to generate for real-time use. We break down code generation into four steps, where some steps do not require any calls to an LLM.
 Decreasing the number of output tokens guarantees a speedup, assuming consistent latency.
-See \autoref{sec:experimental-setup} for details on the code LLM and prompts we use.
+See \href{https://github.com/justinchiu/onecommon-gpt}{the code} for details on the code LLM and prompts we use.\footnote{
+We release the code \href{https://github.com/justinchiu/onecommon-gpt}{here}.
+}
 % \daniel{forward ref to wherever we talk about details of model and prompts?}
 
 \noindent \textit{Dialogue Act:} Classify partner utterances as one of three dialogue acts: Start a \textsc{new} line of questioning, ask a \textsc{follow-up} question, \textsc{end} the dialogue.
@@ -538,6 +543,9 @@ We collect 287 completed dialogues in total, where both players selected a dot.
 
 We secondarily evaluate systems in self-play, where systems are paired with a copy of themselves. This isolates strategic efficiency by ensuring the agent's partner has the same skill as the agent. The 200 games share the same contexts across systems.
 
+We include an additional system in self-play, GPT4 2-shot\footnote{We do not include GPT4 2-shot in human evaluation, as its self-play evaluation is very poor.}, which gets two full human dialogues as examples. Each human dialogue example starts with a description of the context the agent sees.
+The full prompts can be viewed \href{https://github.com/justinchiu/onecommon-gpt}{here}.
+
 % \paragraph{Hyperparameters}
 % Throughout, \system{} sets the probability of success hyperparameter $\theta = 0.8$.
 
@@ -624,15 +632,17 @@ Interestingly, \system{} self-play takes fewer turns on average than \system-hum
 We hypothesize that this is due to both copies of \system{} communicating a consistent amount of information every turn.
 This also highlights the importance of human evaluation, which evaluates with a large population of partners.
 
+We also find that GPT4 2-shot performs poorly in self-play. We attribute this to overly-agreeable responses, where the agents choose a dot without thorough verification or reasoning. This occurs despite the much longer dialogues, in comparison to all other agent types.
+
 \begin{table}[!t]
 \centering
 \begin{tabular}{lrr}
 \toprule
 Agent                   & Success & Avg \# turns\\
 \midrule
-\system{}$$             & 84.0\% & 4.83\\
+\system{}$$             & 84.0\%  & 4.83\\
 Imitate                 & 63.5\%  & 3.31\\
-%GPT4                   & \%      & \\
+GPT4 2-shot             & 19.0\%    & 9.26\\
 %ViperGPT               &         & \\
 \hline
 Human$^\dagger$         & 65.8\%  & 4.97\\
@@ -670,7 +680,7 @@ The human performance is from the \textsc{OneCommon} dataset
 % % right
 % \filldraw[gray!100] (-1,1.5) circle (.3em); % 28
 % \filldraw[gray!100] (-.5,1.6) circle (.38em); % 69
-% \filldraw[gray!160] (.8,1.8) circle (.45em); % 26
+% \filldr;aw[gray!160] (.8,1.8) circle (.45em); % 26
 
 % % left selects 76
 % \draw[blue,thick] (.2,.6) circle (.7em);
@@ -763,75 +773,30 @@ The average accuracy, speed, and output length (number of tokens) for the sequen
 }
 \end{table}
 
-\begin{comment}
-\paragraph{Reading accuracy}
-We evaluate the accuracy of reading systems on 25 outputs.
-We draw 25 utterances from the write templates of \system{}.
-Utterances are restricted to describing pairs of dots.
-Systems must resolve these utterances to dots in their own view. We remove partial observability for this experiment, to isolate reading capabilities.
-
-We find in Table \ref{tbl:refres} that \system{} performs well at resolving the template generations.
-Note that \system{} did not receive explicit supervision on the template generations, but instead relies on the generalization of LLMs.
-However, the baseline Imitate system fails to generalize to the pairs of dots described by \system{}, at a much lower rate than the 68\% estimate of human resolution accuracy.
-This implies a lack of generalization in Imitate's reading ability.
-
-\begin{table}[!t]
-\centering
-\begin{tabular}{lr}
-\toprule
-Reader                   & Acc\\
-\midrule
-\system{}                & 92\% \\
-Imitate                  & 16\%  \\
-Human                    & $\sim 68\%$ \\
-% GPT4-MC                & \%  \\
-% BLIP2                  & \%  \\
-\bottomrule
-\end{tabular}
-\caption{\label{tbl:refres}
-Reference resolution accuracy on template generations from \system{}.
-% \vspace{-1em}
-}
-\end{table}
-\end{comment}
-
-\begin{comment}
-\paragraph{Error analysis}
-If I still have space.
-
-\noindent\textit{Compound constraints}
-
-\noindent\textit{Conversational repair}
-
-\noindent\textit{Contextual semantics of size, color, and distance}
-\end{comment}
-
 \section{Conclusion}
 We present Symbolic Planning and Code-generation (\system{}), a method that approaches grounded task-oriented dialogue by separating symbolic reasoning from language.  Our approach uses an LLM to generate executable code functions which represent the meaning of utterances, mapping from language to symbolic actions. We then symbolically track task progress using Bayesian reasoning,  and explicitly plan the best actions to take next using an information gain objective. 
-Despite using minimal supervision, beyond a task-specific API and few-shot examples, our approach substantially outperforms the state-of-the-art system for the \textsc{OneCommon} task in both human evaluations and automatic self-play evaluations. 
+Despite using minimal supervision, beyond a task-specific API and few-shot examples, our approach substantially outperforms the state-of-the-art system for the \textsc{OneCommon} task in both human evaluations and automatic self-play evaluations.
 
 Our work contrasts with recent work on planning in language space, which reasons implicitly \citep{cot,yarats2017rollout,bamcp}.
 While less flexible than language reasoning, symbolic reasoning is both interpretable and modular.
 Future work should seek to improve the flexibility of symbolic reasoning \citep{wong2023word}.
 
-Our work also represents a first step toward using general purpose code as a representation for downstream dialogue and interaction tasks. Future work might explore code-based representations that afford more flexible interaction with people, e.g., representing a broader range of user actions, both linguistic and grounded, to construct broadly useful interactive systems.
+Our work also represents a first step toward using general-purpose code as a representation for downstream dialogue and interaction tasks. Future work might explore code-based representations that afford more flexible interaction with people, e.g., representing a broader range of user actions, both linguistic and grounded, to construct broadly useful interactive systems. An ideal system would be able to synthesize these representations with minimal manual intervention.
 
-\begin{comment}
 \section*{Acknowledgements}
-We thank Vivian Chen, Ge Gao, Omer Gul, Sedrick Keh, Woojeong Kim, Celine Lee, Jack Morris, Chenran Ning, Jacob Sharf, Alane Suhr, Nicholas Tomlin, Saujas Vaduguru, Anne Wu, and Jiawei Zhou for discussions, game-playing, and feedback at various points in the process.
+We thank Vivian Chen, Sanjiban Choudhury, Ge Gao, Omer Gul, Sedrick Keh, Woojeong Kim, Celine Lee, Jack Morris, Chenran Ning, Jacob Sharf, Alane Suhr, Nicholas Tomlin, Anne Wu, and Jiawei Zhou for discussions, game-playing, and feedback at various points in the process.
 
-We also thank the Mechanical Turkers for their efforts in human evaluation.
-\end{comment}
+We also thank the Mechanical Turkers of Turker Nation for their efforts in game-playing.
+
+JC is supported by NSF \#2242302. AMR is supported by a Sloan Fellowship and NSF CAREER \#2037519.
+SV and DF were supported by gifts from Google and from Autodesk Research.
 
 \section*{Limitations}
 Our system performs code execution given human input,
 opening our system to several risks, such as code injection and unauthorized access.
 Future work must strive to integrate code execution capabilities in a secure manner.
 
-Our approach also requires the manual engineering of a domain-specific API, as well as a symbolic representation. Future work should seek to alleviate the amount of manual engineering in order to improve flexibility.
-
-
-%\section*{Ethics Statement}
+Our approach also requires the manual engineering of a domain-specific API, as well as a symbolic representation. Future work should seek to alleviate the amount of manual engineering in order to improve flexibility. We hope that methods in program synthesis can provide a solution.
 
 % Entries for the entire Anthology, followed by custom entries
 \bibliography{anthology,custom}
@@ -839,295 +804,31 @@ Our approach also requires the manual engineering of a domain-specific API, as w
 
 \appendix
 
-\section{Perceptual library}
-\label{sec:library}
-
-We present samples from or full files of the \textsc{OneCommon} perceptual library in Figures \ref{fig:color}, \ref{fig:size}, \ref{fig:shape}, \ref{fig:spatial}.
-
 \lstset{basicstyle=\footnotesize\ttfamily,breaklines=true}
 
-\begin{figure*}
-\begin{lstlisting}
-import numpy as np
-# dots are x, y, size, color
+\section{Prompt details}
+All prompts rely on few-shot prompting. Reformat has 5 few-shot examples, Classify has two dialogues with 15-turns total, Confirm has 9 examples, and Understand has two dialogues with 15 turns total. All examples were based loosely on 10 examples from the human-human games collected in OneCommon by \citet{onecommon}. The same prompts were used in every context.
+The full prompts can be found \href{https://github.com/justinchiu/onecommon-gpt}{here}.
 
-# -1 is darkest
-def is_dark(x, ctx):
-    return ctx[x,-1] < -0.3
+\section{Prompt ablation}
+We present an additional experiment on how the choice of few-shot examples affects the code constraint generation prompt, which is a key component of the reading step.
+The code constraints express the relationships between the mentioned dots, e.g. whether they form a triangle or their relative positions, shapes, and colors.
 
-# 1 is lightest
-def is_light(x, ctx):
-    # colors are in [-1,1]
-    return ctx[x,-1] > 0.3
-    #return ctx[x,-1] > 0.2
+We take the first human utterance from 20 games in human evaluation and examine whether the parsed answer changes when the prompt examples are changed. The 15 examples in the constraint generation prompt were labeled by hand. Since we cannot sample another 15 examples, we instead sub-sample 5 random examples out of 15 for a 5-shot prompt. We report the average agreement between 5-shot prompts and the original 15-shot prompt across 5 trials: 99\%, with a standard deviation of 2\%. This implies the constraint generation prompt is not sensitive to prompt example choice at the 5-shot level and prompts could be further optimized.
 
-def is_grey(x, ctx):
-    return ctx[x,-1] < 0.4 and ctx[x,-1] > -0.4
+We perform the same experiment with 5 trials of 1-shot prompts and see an average agreement rate of 34\% with a standard deviation of 42\%. This implies that given a single example, the prompt example matters.
 
-def darkest(x, ctx):
-    return x[np.argmin(ctx[x,-1])]
-
-def lightest(x, ctx):
-    return x[np.argmax(ctx[x,-1])]
-
-
-def same_color(x, ctx):
-    colors = ctx[x,-1]
-    return np.abs(colors[:,None] - colors).max() < 0.1
-
-def different_color(x, ctx):
-    colors = ctx[x,-1]
-    return np.abs(colors[:,None] - colors + np.eye(len(x))).min() > 0.3
-
-
-def are_darker(x, y, ctx):
-    return (ctx[x,None,-1] < ctx[y,-1]).all()
-
-def are_lighter(x, y, ctx):
-    return (ctx[x,None,-1] > ctx[y,-1]).all()
-
-def is_darker(x, y, ctx):
-    if y is None:
-        return is_dark(x, ctx)
-    elif isinstance(y, int) or isinstance(y, np.int64):
-        return ctx[x,-1] < ctx[y,-1]
-    elif isinstance(y, list):
-        return are_darker([x], y, ctx)
-    else:
-        ValueError
-        
-def is_lighter(x, y, ctx):
-    if y is None:
-        return is_light(x, ctx)
-    elif isinstance(y, int) or isinstance(y, np.int64):
-        return ctx[x,-1] > ctx[y,-1]
-    elif isinstance(y, list):
-        return are_lighter([x], y, ctx)
-    else:
-        ValueError
-\end{lstlisting}
-\caption{The color perceptual functions.}
-\label{fig:color}
-\end{figure*}
-
-\begin{figure*}
-\begin{lstlisting}
-import numpy as np
-
-def is_large(x, ctx):
-    return ctx[x, -2] > 0.3
-
-def is_small(x, ctx):
-    return ctx[x, -2] < -0.3
-
-def is_medium_size(x, ctx):
-    #return True
-    return ctx[x, -2] > -0.4 and ctx[x, -2] < 0.4
-    return not is_large(x, ctx) and not is_small(x, ctx)
-
-def largest(x, ctx):
-    return x[np.argmax(ctx[x,-2])]
-
-def smallest(x, ctx):
-    return x[np.argmin(ctx[x,-2])]
-
-def same_size(x, ctx):
-    sizes = ctx[x,-2] 
-    return np.abs(sizes[:,None] - sizes).max() < 0.1
-
-def different_size(x, ctx):
-    sizes = ctx[x,-2]
-    return np.abs(sizes[:,None] - sizes + np.eye(len(x))).min() > 0.3
-
-def are_larger(x, y, ctx):
-    return (ctx[x,None,-2] > ctx[y,-2]).all()
-
-def are_smaller(x, y, ctx):
-    return (ctx[x,None,-2] < ctx[y,-2]).all()
-
-def is_larger(x, y, ctx):
-    if y is None:
-        return is_large(x, ctx)
-    elif isinstance(y, int) or isinstance(y, np.int64):
-        return ctx[x,-2] > ctx[y,-2]
-    elif isinstance(y, list):
-        return are_larger([x], y, ctx)
-    else:
-        ValueError
-
-def is_smaller(x, y, ctx):
-    if y is None:
-        return is_small(x, ctx)
-    elif isinstance(y, int) or isinstance(y, np.int64):
-        return ctx[x,-2] < ctx[y,-2]
-    elif isinstance(y, list):
-        return are_smaller([x], y, ctx)
-    else:
-        ValueError
-\end{lstlisting}
-\caption{The size perceptual functions.}
-\label{fig:size}
-\end{figure*}
-
-\begin{figure*}
-\begin{lstlisting}
-import shapely
-from shapely import Point, MultiPoint
-import numpy as np
-import math
-from oc.fns.iterators import getcombs
-
-def is_nearest(x, ctx):
-    raise NotImplementedError
-
-def is_contiguous(x, ctx):
-    xy = ctx[x,:2]
-    all_xy = ctx[:,:2]
-    hull = MultiPoint(xy).convex_hull
-    contiguous = not any([
-        shapely.contains_xy(hull, x, y)
-        for x,y in all_xy
-    ])
-    return contiguous
-
-def unit_vector(vector, axis=None):
-    """ Returns the unit vector of the vector.  """
-    return vector / np.linalg.norm(vector, axis=axis, keepdims=True)
-
-def angle_between(v1, v2):
-    v1_u = unit_vector(v1)
-    v2_u = unit_vector(v2)
-    return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
-
-def get_angles(xys):
-    num_dots = xys.shape[0]
-    pairs = [
-        [tgt for tgt in range(num_dots) if src != tgt]
-        for src in range(num_dots)
-    ]
-    xy_pairs = xys[np.array(pairs)]
-    diffs = xys[:,None] - xy_pairs
-    diffs = unit_vector(diffs, 1)
-    return np.arccos(np.clip(
-        (diffs[:,0] * diffs[:,1]).sum(-1),
-        -1, 1
-    ))
-
-def is_line(x, ctx):
-    if len(x) < 2: return False
-    if len(x) == 2: return True
-    xy = ctx[x,:2]
-    angles = get_angles(xy)
-    return max(angles) * 180 / math.pi > 135
-
-def is_triangle(x, ctx):
-    if len(x) != 3: return False
-
-    # only take most compact triangles
-    radii = []
-    dots = []
-    #for idxs in get3idxs(list(range(7))):
-    for idxs in getcombs(list(range(7)), 3):
-        if not is_line(idxs, ctx) and is_contiguous(idxs, ctx):
-            mp = MultiPoint(ctx[idxs,:2])
-            radius = shapely.minimum_bounding_radius(mp)
-            radii.append(radius)
-            dots.append((idxs))
-    # 3 smallest triangles. 6 permutations of 3 dots
-    dotset = np.array(dots)[np.argsort(radii)[:18]]
-    return (dotset == x).all(-1).any()
-
-def is_square(x, ctx):
-    return len(x) == 4 and is_contiguous(x, ctx)
-\end{lstlisting}
-\caption{The shape perceptual functions.}
-\label{fig:shape}
-\end{figure*}
-
-\begin{figure*}
-\begin{lstlisting}
-import shapely
-from shapely import MultiPoint, Point
-import numpy as np
-import math
-
-def get_minimum_radius(x, ctx):
-    xy = ctx[list(x),:2]
-    mp = shapely.MultiPoint(xy)
-    radius = shapely.minimum_bounding_radius(mp)
-    return radius
-
-# validate
-def all_close(idxs, ctx):
-    xy = ctx[idxs,:2]
-
-    # use radius
-    mp = shapely.MultiPoint(xy)
-    radius = shapely.minimum_bounding_radius(mp)
-    return radius < 0.3
-
-    # be generous
-    return np.linalg.norm(xy - xy[:,None], axis=-1).max() < 0.3
-
-    # rectangle
-    rect = MultiPoint(xy).minimum_rotated_rectangle
-
-    minx, miny, maxx, maxy = rect.bounds
-
-    width = maxx - minx
-    height = maxy - miny
-    diagonal = math.hypot(width, height)
-
-    # HARD CODE, try to be a bit generous
-    return diagonal < 0.3
-
-#def are_close(x, y, ctx):
-#    return np.linalg.norm(ctx[x,:2]-ctx[y,:2]) < 0.3
-
-def are_direction(x, y, direction, ctx):
-    # Relative to view: always True
-    if y is None:
-        return True
-    deltas = ctx[x,None,:2] - ctx[y,:2]
-    return ((deltas * direction) >= 0).all()
-
-def are_above(x, y, ctx):
-    return are_direction(x, y, np.array([0,1]), ctx)
-
-def are_below(x, y, ctx):
-    return are_direction(x, y, np.array([0,-1]), ctx)
-
-def are_right(x, y, ctx):
-    return are_direction(x, y, np.array([1,0]), ctx)
-
-def are_left(x, y, ctx):
-    return are_direction(x, y, np.array([-1,0]), ctx)
-
-def are_above_right(x, y, ctx):
-    return are_direction(x, y, np.array([1,1]), ctx)
-
-def are_above_left(x, y, ctx):
-    return are_direction(x, y, np.array([-1,1]), ctx)
-
-def are_below_right(x, y, ctx):
-    return are_direction(x, y, np.array([1,-1]), ctx)
-
-def are_below_left(x, y, ctx):
-    return are_direction(x, y, np.array([-1,-1]), ctx)
-\end{lstlisting}
-\caption{A sample of the spatial perceptual functions.}
-\label{fig:spatial}
-\end{figure*}
+We also find that a zero-shot prompt is unable to generate output in the correct format.
 
 \section{Writing}
 \label{sec:templates}
 We utilize three templates for writing, one for each dialogue act.
 
-\noindent\textsc{start}: \texttt{Do you see a pair of dots, where the {position} dot is {size}-sized and {color} and the {position} dot is {size}-sized and {color}?}
+\noindent\textsc{start}: \texttt{Do you see a pair of dots, where the \{position\} dot is \{size\}-sized and \{color\} and the \{position\} dot is \{size\}-sized and \{color\}?}
 
-\noindent\textsc{follow-up}: \texttt{Is there a {size} size and {color} color dot {position} those?}
+\noindent\textsc{follow-up}: \texttt{Is there a \{size\} size and \{color\} color dot \{position\} those?}
 
-\noindent\textsc{select}: \texttt{Let's select the {size} size and {color} color one. <selection>}
+\noindent\textsc{select}: \texttt{Let's select the \{size\} size and \{color\} color one. <selection>}
 
 \section{Parameterization}
 \label{sec:parameterization}
@@ -1142,6 +843,10 @@ p(z) \propto \exp(f(z)),
 \end{equation}
 where $f(z)$ is given the sum of the edges of a minimum spanning tree for the dots in $z$. The weights of this spanning tree are determined by the rank of how close the dots are to each other.
 The edge between the nearest neighbor of a dot and the dot itself gets assigned a weight of 0, the 2nd nearest neighbor a weight of 1, and so on.
+
+\section{Relation to prior work in semantic parsing and dialogue state tracking}
+Prior work in semantic parsing for dialogue state tracking, such as in SMCalFlow \citep{sm}, does not ground in a visual context and also requires strategic, collaborative planning due to OneCommon’s symmetric roles. Agents must both give and request information strategically. This type of strategic reasoning is not explored in prior works in semantic parsing and dialogue state tracking.
+Our technical contribution is unifying grounded language understanding and strategic symbolic reasoning with code generation. In particular, the reading phase of SPC was designed for spatial reasoning in OneCommon. 
 
 \end{document}
 

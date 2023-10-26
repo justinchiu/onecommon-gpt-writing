@@ -1,0 +1,279 @@
+\begin{thebibliography}{36}
+\expandafter\ifx\csname natexlab\endcsname\relax\def\natexlab#1{#1}\fi
+
+\bibitem[{Andreas et~al.(2020)Andreas, Bufe, Burkett, Chen, Clausman, Crawford,
+  Crim, DeLoach, Dorner, Eisner, Fang, Guo, Hall, Hayes, Hill, Ho, Iwaszuk,
+  Jha, Klein, Krishnamurthy, Lanman, Liang, Lin, Lintsbakh, McGovern,
+  Nisnevich, Pauls, Petters, Read, Roth, Roy, Rusak, Short, Slomin, Snyder,
+  Striplin, Su, Tellman, Thomson, Vorobev, Witoszko, Wolfe, Wray, Zhang, and
+  Zotov}]{sm}
+Jacob Andreas, John Bufe, David Burkett, Charles Chen, Josh Clausman, Jean
+  Crawford, Kate Crim, Jordan DeLoach, Leah Dorner, Jason Eisner, Hao Fang,
+  Alan Guo, David Hall, Kristin Hayes, Kellie Hill, Diana Ho, Wendy Iwaszuk,
+  Smriti Jha, Dan Klein, Jayant Krishnamurthy, Theo Lanman, Percy Liang,
+  Christopher~H. Lin, Ilya Lintsbakh, Andy McGovern, Aleksandr Nisnevich, Adam
+  Pauls, Dmitrij Petters, Brent Read, Dan Roth, Subhro Roy, Jesse Rusak, Beth
+  Short, Div Slomin, Ben Snyder, Stephon Striplin, Yu~Su, Zachary Tellman, Sam
+  Thomson, Andrei Vorobev, Izabela Witoszko, Jason~Andrew Wolfe, Abby Wray,
+  Yuchen Zhang, and Alexander Zotov. 2020.
+\newblock \href {http://arxiv.org/abs/2009.11423} {Task-oriented dialogue as
+  dataflow synthesis}.
+\newblock \emph{CoRR}, abs/2009.11423.
+
+\bibitem[{Bakhtin et~al.(2022)Bakhtin, Brown, Dinan, Farina, Flaherty, Fried,
+  Goff, Gray, Hu, Jacob, Komeili, Konath, Kwon, Lerer, Lewis, Miller, Mitts,
+  Renduchintala, Roller, Rowe, Shi, Spisak, Wei, Wu, Zhang, and
+  Zijlstra}]{cicero}
+Anton Bakhtin, Noam Brown, Emily Dinan, Gabriele Farina, Colin Flaherty, Daniel
+  Fried, Andrew Goff, Jonathan Gray, Hengyuan Hu, Athul~Paul Jacob, Mojtaba
+  Komeili, Karthik Konath, Minae Kwon, Adam Lerer, Mike Lewis, Alexander~H.
+  Miller, Sasha Mitts, Adithya Renduchintala, Stephen Roller, Dirk Rowe, Weiyan
+  Shi, Joe Spisak, Alexander Wei, David Wu, Hugh Zhang, and Markus Zijlstra.
+  2022.
+\newblock Human-level play in the game of diplomacy by combining language
+  models with strategic reasoning.
+\newblock \emph{Science}, 378(6624):1067--1074.
+
+\bibitem[{Chen et~al.(2021)Chen, Tworek, Jun, Yuan, de~Oliveira~Pinto, Kaplan,
+  Edwards, Burda, Joseph, Brockman, Ray, Puri, Krueger, Petrov, Khlaaf, Sastry,
+  Mishkin, Chan, Gray, Ryder, Pavlov, Power, Kaiser, Bavarian, Winter, Tillet,
+  Such, Cummings, Plappert, Chantzis, Barnes, Herbert-Voss, Guss, Nichol,
+  Paino, Tezak, Tang, Babuschkin, Balaji, Jain, Saunders, Hesse, Carr, Leike,
+  Achiam, Misra, Morikawa, Radford, Knight, Brundage, Murati, Mayer, Welinder,
+  McGrew, Amodei, McCandlish, Sutskever, and Zaremba}]{chen2021evaluating}
+Mark Chen, Jerry Tworek, Heewoo Jun, Qiming Yuan, Henrique~Ponde
+  de~Oliveira~Pinto, Jared Kaplan, Harri Edwards, Yuri Burda, Nicholas Joseph,
+  Greg Brockman, Alex Ray, Raul Puri, Gretchen Krueger, Michael Petrov, Heidy
+  Khlaaf, Girish Sastry, Pamela Mishkin, Brooke Chan, Scott Gray, Nick Ryder,
+  Mikhail Pavlov, Alethea Power, Lukasz Kaiser, Mohammad Bavarian, Clemens
+  Winter, Philippe Tillet, Felipe~Petroski Such, Dave Cummings, Matthias
+  Plappert, Fotios Chantzis, Elizabeth Barnes, Ariel Herbert-Voss,
+  William~Hebgen Guss, Alex Nichol, Alex Paino, Nikolas Tezak, Jie Tang, Igor
+  Babuschkin, Suchir Balaji, Shantanu Jain, William Saunders, Christopher
+  Hesse, Andrew~N. Carr, Jan Leike, Josh Achiam, Vedant Misra, Evan Morikawa,
+  Alec Radford, Matthew Knight, Miles Brundage, Mira Murati, Katie Mayer, Peter
+  Welinder, Bob McGrew, Dario Amodei, Sam McCandlish, Ilya Sutskever, and
+  Wojciech Zaremba. 2021.
+\newblock \href {http://arxiv.org/abs/2107.03374} {Evaluating large language
+  models trained on code}.
+
+\bibitem[{Cheng et~al.(2018)Cheng, Reddy, Saraswat, and
+  Lapata}]{cheng2018learning}
+Jianpeng Cheng, Siva Reddy, Vijay Saraswat, and Mirella Lapata. 2018.
+\newblock \href {http://arxiv.org/abs/1711.05066} {Learning an executable
+  neural semantic parser}.
+
+\bibitem[{Chiu et~al.(2022)Chiu, Zhao, Fried, and Rush}]{ocp}
+Justin~T Chiu, Wenting Zhao, Daniel Fried, and Alexander~M Rush. 2022.
+\newblock \href {https://openreview.net/forum?id=PkHSHZLig5H} {Modeling
+  perspective-dependent ambiguity in collaborative dialogue}.
+\newblock In \emph{The Third Wordplay: When Language Meets Games Workshop}.
+
+\bibitem[{Christiano et~al.(2023)Christiano, Leike, Brown, Martic, Legg, and
+  Amodei}]{rlhf}
+Paul Christiano, Jan Leike, Tom~B. Brown, Miljan Martic, Shane Legg, and Dario
+  Amodei. 2023.
+\newblock \href {http://arxiv.org/abs/1706.03741} {Deep reinforcement learning
+  from human preferences}.
+
+\bibitem[{Cohen and Perrault(1979)}]{cohen1979-speech-acts}
+Philip~R. Cohen and C.~Raymond Perrault. 1979.
+\newblock Elements of a plan-based theory of speech acts.
+\newblock \emph{Cognitive Science}.
+
+\bibitem[{D\'idac et~al.(2023)D\'idac, Menon, and Vondrick}]{vipergpt}
+Sur\'is D\'idac, Sachit Menon, and Carl Vondrick. 2023.
+\newblock Vipergpt: Visual inference via python execution for reasoning.
+\newblock \emph{arXiv preprint arXiv:2303.08128}.
+
+\bibitem[{Fried et~al.(2021)Fried, Chiu, and Klein}]{fried}
+Daniel Fried, Justin~T. Chiu, and Dan Klein. 2021.
+\newblock \href {http://arxiv.org/abs/2109.05042} {Reference-centric models for
+  grounded collaborative dialogue}.
+\newblock In \emph{Proceedings of EMNLP}.
+
+\bibitem[{Gandhi et~al.(2023)Gandhi, Sadigh, and Goodman}]{gandhi2023strategic}
+Kanishk Gandhi, Dorsa Sadigh, and Noah~D. Goodman. 2023.
+\newblock \href {http://arxiv.org/abs/2305.19165} {Strategic reasoning with
+  language models}.
+
+\bibitem[{Gao et~al.(2023)Gao, Madaan, Zhou, Alon, Liu, Yang, Callan, and
+  Neubig}]{gao2023pal}
+Luyu Gao, Aman Madaan, Shuyan Zhou, Uri Alon, Pengfei Liu, Yiming Yang, Jamie
+  Callan, and Graham Neubig. 2023.
+\newblock \href {http://arxiv.org/abs/2211.10435} {Pal: Program-aided language
+  models}.
+
+\bibitem[{Guez et~al.(2012)Guez, Silver, and Dayan}]{bamcp}
+Arthur Guez, David Silver, and Peter Dayan. 2012.
+\newblock \href {http://arxiv.org/abs/1205.3109} {Efficient bayes-adaptive
+  reinforcement learning using sample-based search}.
+\newblock \emph{CoRR}, abs/1205.3109.
+
+\bibitem[{Gupta and Kembhavi(2022)}]{gupta2022visual}
+Tanmay Gupta and Aniruddha Kembhavi. 2022.
+\newblock \href {http://arxiv.org/abs/2211.11559} {Visual programming:
+  Compositional visual reasoning without training}.
+
+\bibitem[{Haber et~al.(2019)Haber, Baumg{\"{a}}rtner, Takmaz, Gelderloos,
+  Bruni, and Fern{\'{a}}ndez}]{pb}
+Janosch Haber, Tim Baumg{\"{a}}rtner, Ece Takmaz, Lieke Gelderloos, Elia Bruni,
+  and Raquel Fern{\'{a}}ndez. 2019.
+\newblock \href {http://arxiv.org/abs/1906.01530} {The photobook dataset:
+  Building common ground through visually-grounded dialogue}.
+\newblock \emph{CoRR}, abs/1906.01530.
+
+\bibitem[{He et~al.(2017)He, Balakrishnan, Eric, and Liang}]{mf}
+He~He, Anusha Balakrishnan, Mihail Eric, and Percy Liang. 2017.
+\newblock \href {http://arxiv.org/abs/1704.07130} {Learning symmetric
+  collaborative dialogue agents with dynamic knowledge graph embeddings}.
+\newblock \emph{CoRR}, abs/1704.07130.
+
+\bibitem[{He et~al.(2018)He, Chen, Balakrishnan, and Liang}]{he2018dnd}
+He~He, Derek Chen, Anusha Balakrishnan, and Percy Liang. 2018.
+\newblock \href {http://arxiv.org/abs/1808.09637} {Decoupling strategy and
+  generation in negotiation dialogues}.
+\newblock \emph{CoRR}, abs/1808.09637.
+
+\bibitem[{Jang et~al.(2020)Jang, Lee, and Kim}]{jang2020bapomdp}
+Youngsoo Jang, Jongmin Lee, and Kee{-}Eung Kim. 2020.
+\newblock \href {https://aaai.org/ojs/index.php/AAAI/article/view/6308}
+  {Bayes-adaptive monte-carlo planning and learning for goal-oriented
+  dialogues}.
+\newblock In \emph{The Thirty-Fourth {AAAI} Conference on Artificial
+  Intelligence, {AAAI} 2020, The Thirty-Second Innovative Applications of
+  Artificial Intelligence Conference, {IAAI} 2020, The Tenth {AAAI} Symposium
+  on Educational Advances in Artificial Intelligence, {EAAI} 2020, New York,
+  NY, USA, February 7-12, 2020}, pages 7994--8001. {AAAI} Press.
+
+\bibitem[{Johnson et~al.(2017)Johnson, Hariharan, van~der Maaten, Hoffman,
+  Fei-Fei, Zitnick, and Girshick}]{johnson2017inferring}
+Justin Johnson, Bharath Hariharan, Laurens van~der Maaten, Judy Hoffman,
+  Li~Fei-Fei, C.~Lawrence Zitnick, and Ross Girshick. 2017.
+\newblock \href {http://arxiv.org/abs/1705.03633} {Inferring and executing
+  programs for visual reasoning}.
+
+\bibitem[{Khani et~al.(2018)Khani, Goodman, and Liang}]{pip}
+Fereshte Khani, Noah Goodman, and Percy Liang. 2018.
+\newblock \href {https://doi.org/10.1162/tacl_a_00037} {Planning, inference and
+  pragmatics in sequential language games}.
+\newblock \emph{Transactions of the Association for Computational Linguistics},
+  6:543--555.
+
+\bibitem[{Liang et~al.(2022)Liang, Huang, Xia, Xu, Hausman, Ichter, Florence,
+  and Zeng}]{codeaspolicies2022}
+Jacky Liang, Wenlong Huang, Fei Xia, Peng Xu, Karol Hausman, Brian Ichter, Pete
+  Florence, and Andy Zeng. 2022.
+\newblock Code as policies: Language model programs for embodied control.
+\newblock In \emph{arXiv preprint arXiv:2209.07753}.
+
+\bibitem[{Liang(2016)}]{liang2016learning}
+Percy Liang. 2016.
+\newblock \href {http://arxiv.org/abs/1603.06677} {Learning executable semantic
+  parsers for natural language understanding}.
+
+\bibitem[{Lindley(1956)}]{lindley}
+D.~V. Lindley. 1956.
+\newblock \href {https://doi.org/10.1214/aoms/1177728069} {{On a Measure of the
+  Information Provided by an Experiment}}.
+\newblock \emph{The Annals of Mathematical Statistics}, 27(4):986 -- 1005.
+
+\bibitem[{Lu et~al.(2022)Lu, Welleck, West, Jiang, Kasai, Khashabi, Bras, Qin,
+  Yu, Zellers, Smith, and Choi}]{astaresque}
+Ximing Lu, Sean Welleck, Peter West, Liwei Jiang, Jungo Kasai, Daniel Khashabi,
+  Ronan~Le Bras, Lianhui Qin, Youngjae Yu, Rowan Zellers, Noah~A. Smith, and
+  Yejin Choi. 2022.
+\newblock \href {https://arxiv.org/abs/2112.08726} {Neurologic a*esque
+  decoding: Constrained text generation with lookahead heuristics}.
+
+\bibitem[{OpenAI(2023)}]{gpt4}
+OpenAI. 2023.
+\newblock \href {http://arxiv.org/abs/2303.08774} {Gpt-4 technical report}.
+
+\bibitem[{Rieser and Lemon(2009)}]{Rieser2009-planning}
+Verena Rieser and Oliver Lemon. 2009.
+\newblock Natural language generation as planning under uncertainty for spoken
+  dialogue systems.
+\newblock In \emph{Proceedings of the 12th Conference of the {E}uropean Chapter
+  of the {ACL} ({{EACL}} 2009)}, pages 683--691, Athens, Greece. Association
+  for Computational Linguistics.
+
+\bibitem[{Traum(1994)}]{traum1994computational}
+David~R Traum. 1994.
+\newblock A computational theory of grounding in natural language conversation.
+\newblock Technical report, Rochester University Department of Computer
+  Science.
+
+\bibitem[{Udagawa and Aizawa(2019)}]{onecommon}
+Takuma Udagawa and Akiko Aizawa. 2019.
+\newblock \href {https://doi.org/10.1609/aaai.v33i01.33017120} {A natural
+  language corpus of common grounding under continuous and partially-observable
+  context}.
+\newblock \emph{Proceedings of the AAAI Conference on Artificial Intelligence},
+  33(01):7120--7127.
+
+\bibitem[{Valmeekam et~al.(2023)Valmeekam, Sreedharan, Marquez, Olmo, and
+  Kambhampati}]{valmeekam2023planning}
+Karthik Valmeekam, Sarath Sreedharan, Matthew Marquez, Alberto Olmo, and
+  Subbarao Kambhampati. 2023.
+\newblock \href {http://arxiv.org/abs/2302.06706} {On the planning abilities of
+  large language models (a critical investigation with a proposed benchmark)}.
+
+\bibitem[{Walker et~al.(2004)Walker, Whittaker, Stent, Maloor, Moore, Johnston,
+  and Vasireddy}]{Walker2004-generation}
+M~A Walker, S~J Whittaker, A~Stent, P~Maloor, J~Moore, M~Johnston, and
+  G~Vasireddy. 2004.
+\newblock Generation and evaluation of user tailored responses in multimodal
+  dialogue.
+\newblock \emph{Cognitive Science}, 28(5):811--840.
+
+\bibitem[{Wei et~al.(2022)Wei, Wang, Schuurmans, Bosma, Chi, Le, and
+  Zhou}]{cot}
+Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Ed~H. Chi, Quoc Le, and
+  Denny Zhou. 2022.
+\newblock \href {http://arxiv.org/abs/2201.11903} {Chain of thought prompting
+  elicits reasoning in large language models}.
+\newblock \emph{CoRR}, abs/2201.11903.
+
+\bibitem[{White et~al.(2021)White, Poesia, Hawkins, Sadigh, and
+  Goodman}]{white-etal-2021-open}
+Julia White, Gabriel Poesia, Robert Hawkins, Dorsa Sadigh, and Noah Goodman.
+  2021.
+\newblock \href {https://doi.org/10.18653/v1/2021.emnlp-main.44} {Open-domain
+  clarification question generation without question examples}.
+\newblock In \emph{Proceedings of the 2021 Conference on Empirical Methods in
+  Natural Language Processing}, pages 563--570, Online and Punta Cana,
+  Dominican Republic. Association for Computational Linguistics.
+
+\bibitem[{Winograd(1971)}]{winograd}
+Terry Winograd. 1971.
+\newblock Procedures as a representation for data in a computer program for
+  understanding natural language.
+
+\bibitem[{Wong et~al.(2023)Wong, Grand, Lew, Goodman, Mansinghka, Andreas, and
+  Tenenbaum}]{wong2023word}
+Lionel Wong, Gabriel Grand, Alexander~K. Lew, Noah~D. Goodman, Vikash~K.
+  Mansinghka, Jacob Andreas, and Joshua~B. Tenenbaum. 2023.
+\newblock \href {http://arxiv.org/abs/2306.12672} {From word models to world
+  models: Translating from natural language to the probabilistic language of
+  thought}.
+
+\bibitem[{Yarats and Lewis(2017)}]{yarats2017rollout}
+Denis Yarats and Mike Lewis. 2017.
+\newblock \href {http://arxiv.org/abs/1712.05846} {Hierarchical text generation
+  and planning for strategic dialogue}.
+\newblock \emph{CoRR}, abs/1712.05846.
+
+\bibitem[{Young(2006)}]{young2006pomdp}
+Steve Young. 2006.
+\newblock \href {https://doi.org/10.1109/SLT.2006.326785} {Using pomdps for
+  dialog management}.
+\newblock In \emph{2006 IEEE Spoken Language Technology Workshop}, pages 8--13.
+
+\bibitem[{Yu et~al.(2019)Yu, Chen, Wang, Artzi, and Lei}]{yu2019info}
+Lili Yu, Howard Chen, Sida~I. Wang, Yoav Artzi, and Tao Lei. 2019.
+\newblock \href {http://arxiv.org/abs/1911.03598} {Interactive classification
+  by asking informative questions}.
+\newblock \emph{CoRR}, abs/1911.03598.
+
+\end{thebibliography}
